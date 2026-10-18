@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import type { ConferenceDetail, Meeting } from "../api";
+import type { Attendee, ConferenceDetail, Meeting } from "../api";
 import { colleaguesIn, filterMeetings, groupByDate, sendLabel, sharedWith, stampFor, statusCounts, unmatchedNames } from "./review";
 
-const att = (id: number, name: string, sync = "not_sent") =>
+const att = (id: number, name: string, sync: Attendee["sync"] = "not_sent") =>
   ({ analyst_id: id, name, email: `${name.split(" ")[0].toLowerCase()}@example.com`, match: "exact", sync, sync_error: null });
 
 function m(id: number, over: Partial<Meeting> = {}): Meeting {
