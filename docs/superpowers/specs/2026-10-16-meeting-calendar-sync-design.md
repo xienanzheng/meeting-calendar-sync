@@ -474,3 +474,64 @@ accounts; persistent hosted storage (D1/R2); Teams; recurring events; attachment
   - The user runs `wrangler login` and turns on Workers Paid (billing).
   - Secrets are set with `wrangler secret put`. The Anthropic key is piped from the Keychain and
     never printed.
+
+## 15. Approval-driven sync and broker revisions (added 2026-10-18, user request)
+
+Who acts: the coordinator ("CR", a PA-like role) does everything. She holds read/write (delegate)
+access to every colleague's calendar; colleagues never subscribe to or import anything. The Graph
+sink signs in as CR and writes into each colleague's calendar with her delegate rights. Until IT
+approves Graph, the `.ics` files are for CR to import into each colleague's calendar.
+
+### 15.1 Approval sends (supersedes the separate "Send" step in §9)
+
+- `MCS_AUTO_SYNC` (default `true`). After any change that alters what should be on calendars, the
+  API runs the same plan/apply as a send for that conference, in the same request. Those changes
+  are: verify, verify-all-ready, edit, delete or cancel, a conference edit, and applying a revision.
+- A sync problem never fails the user's action. The action succeeds, and the response carries
+  `last_sync` with `ok` and `failed` counts and a message (e.g. "Sign in to Microsoft to update
+  calendars", "Microsoft Graph is not configured", per-item errors).
+- `POST /api/conferences/{id}/send` stays as **Retry** (and the manual path when auto-sync is off).
+- UI: the Send dialog becomes a sync status line ("41 on calendars · 2 failed — Retry", plus a
+  sign-in prompt for Graph). With the `ics` sink, the status line offers per-colleague downloads
+  for CR.
+
+### 15.2 Broker revisions
+
+- **Detection.**
+  - A plain upload (`mode=auto`, the default) is treated as a revision of an existing conference
+    when either:
+    - the normalized conference names match; or
+    - the hotels match and the meeting date ranges overlap.
+    The most recent such conference wins.
+  - `mode=new` forces a new conference.
+  - `POST /api/conferences/{id}/revisions` uploads a revision explicitly.
+  - A wrongly matched revision can be split off with `as-new-conference`.
+- **Baseline.** Each meeting stores `source_json`, the broker's last applied version of that row.
+  A revision is diffed broker-version → broker-version, so CR's manual edits never appear as
+  broker changes. Manual meetings (no `source_json`) are never diffed or removed.
+- **Matching old → new rows,** in order:
+  1. Same date and same normalized company, unique on both sides.
+  2. Same normalized company alone, unique on both sides (a moved day).
+  3. Same date and company similarity ≥ 0.85, unique.
+  4. Anything left over: unmatched new rows are **added** and unmatched old rows (live, with a
+     baseline) are **removed**.
+- **Fields compared:** date, start, end, room, format, ticker, company, company_attendees,
+  firm_attendees. Names are normalized and lists are compared as sets.
+- **Review.** A pending revision shows as "Revision N — K changes", each with before → after and a
+  one-line summary. CR accepts all or some; accepting is her approval.
+  - **Changed:** the broker's new values are applied to the changed fields only. Colleagues
+    matched from names are re-matched; manual and default colleagues are kept. An assumed end
+    follows a moved start. A verified meeting stays verified unless a block flag appears.
+  - **Added:** the meeting is created and verified at once when it has no block flags (otherwise
+    it is left as a draft with its flags).
+  - **Removed:** the meeting is cancelled if it was sent, and deleted otherwise.
+  - **Unchanged matches:** the baseline and source page refresh silently.
+  - **Rejected changes:** they keep their old baseline, so they show up again on the next
+    revision.
+- **After apply:**
+  - the conference's PDF becomes the revision's PDF;
+  - the revision is marked `applied`;
+  - auto-sync runs.
+- **Discard** marks the revision `discarded` and deletes its PDF.
+- **Sample:** `samples/broker_a_grid_v2.pdf` is a revised broker A with exactly 5 changes. It is
+  used by the tests and the demo.
