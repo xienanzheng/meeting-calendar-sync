@@ -5352,25 +5352,1157 @@ git commit -m "feat: Woodline-themed shell, API client, helpers, conferences and
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ```
 
-### Task 11: Review page — "By colleague" verification surface
+> **Added 2026-10-18 (spec §15, user request):** Tasks 10A–10D implement approval sends and broker revisions. Execution order: 10 → 10A → 10B → 10C → 10D → 11 → 12 → 13 → 14 → 15 → 16 → 17 (architecture slides).
 
-**Before writing UI code, read the same four design sources as Task 10.** This page is the surface the direction contract describes; the chosen sketch is its first viewport. Build the real, responsive page with every state the sketch skipped.
+### Task 10A: Approval sends — auto-sync after every approval-type change (backend)
+
+Spec: §15.1 of `docs/superpowers/specs/2026-10-16-meeting-calendar-sync-design.md`. The coordinator ("CR") approves; calendars update in the same request. A sync problem never fails her action.
 
 **Files:**
-- Replace: `frontend/src/pages/ReviewPage.tsx`
-- Create: `frontend/src/components/review/ConferenceContext.tsx`, `ColleagueRail.tsx`, `StatusChips.tsx`, `Timetable.tsx`, `SourcePanel.tsx`, `AttendeePicker.tsx`, `AddMeetingRow.tsx`, `SendDialog.tsx`, `frontend/src/lib/useConference.ts`
-- Test: `frontend/src/lib/useConference.test.ts`
+- Modify: `backend/mcs/config.py` (add `auto_sync: bool = True` to `Settings`, after `ephemeral`)
+- Modify: `backend/mcs/schemas.py` (add `SyncSummary`; add `last_sync: SyncSummary | None = None` to `ConferenceDetail`)
+- Create: `backend/mcs/api/autosync.py`
+- Modify: `backend/mcs/api/routes_conferences.py`, `backend/mcs/api/routes_meetings.py` (call auto-sync after mutations)
+- Test: `backend/tests/test_autosync.py`
 
 **Interfaces:**
-- Consumes: everything Task 10 produces (api functions and types, `format.ts`, `review.ts`, `Shell`, `Stamp`, `Button`, `WoodlineMark`).
-- Produces: the finished `/conferences/:id` route. `useConference(id)` returns `{ detail, error, loading, apply(promise: Promise<ConferenceDetail>) }`. `apply` swaps in the server's fresh detail after every mutation; on `ApiError` it keeps the old detail and exposes `error`.
+- Consumes:
+  - `service.plan_conference`, `service.send_conference` and `service.conference_detail` (Task 8);
+  - `SinkNotConfigured` (`mcs.calendar`) and `GraphAuthError` (`mcs.calendar.graph_auth`);
+  - `app.state.sink_factory` and `app.state.graph_auth` (Task 9).
+- Produces:
+  - `mcs.schemas.SyncSummary(ok: int, failed: int, message: str)`;
+  - `ConferenceDetail.last_sync`;
+  - `mcs.api.autosync.auto_sync(request: Request, session: Session, conference_id: int) -> SyncSummary | None`;
+  - `Settings.auto_sync` (env `MCS_AUTO_SYNC`).
 
-- [ ] **Step 1: Write the failing test for the state helper**
+Routes that must call auto-sync and attach its result to the returned detail:
+- `PATCH /api/conferences/{id}`;
+- `POST /api/conferences/{id}/meetings`;
+- `POST /api/conferences/{id}/confirm-ready`;
+- `PATCH /api/meetings/{id}`;
+- `POST /api/meetings/{id}/confirm`;
+- `POST /api/meetings/{id}/unconfirm`;
+- `DELETE /api/meetings/{id}`.
 
-`useConference.ts` exports a pure reducer the hook wraps, so it can be tested without a DOM:
+`POST /api/conferences/{id}/send` is unchanged; it is now the **Retry** path. Upload doesn't sync, because nothing is verified yet.
+
+- [ ] **Step 1: Write the failing test** — `backend/tests/test_autosync.py`:
+
+```python
+import io
+
+import pytest
+from fastapi.testclient import TestClient
+from icalendar import Calendar
+from sqlmodel import Session
+
+from mcs import service
+from mcs.api.app import create_app
+from mcs.calendar.graph_auth import GraphAuth
+from mcs.calendar.planner import SyncOutcome
+from mcs.config import REPO_ROOT
+
+SAMPLES = REPO_ROOT / "samples"
+PDF_A = (SAMPLES / "broker_a_grid.pdf").read_bytes()
+
+
+def make_client(settings, tmp_path, **app_kw):
+    settings.frontend_dist = tmp_path / "no-dist"
+    app = create_app(settings, **app_kw)
+    with Session(app.state.engine) as s:
+        service.seed_roster(s, SAMPLES / "roster.sample.json")
+    return TestClient(app)
+
+
+def upload(client):
+    r = client.post("/api/conferences", files={"file": ("broker_a_grid.pdf", PDF_A, "application/pdf")})
+    assert r.status_code == 201, r.text
+    return r.json()
+
+
+def company(detail, name):
+    return next(m for m in detail["meetings"] if m["company"] == name)
+
+
+def people(client):
+    return {a["name"]: a["id"] for a in client.get("/api/roster").json()}
+
+
+def ics_events(client, cid, analyst_id):
+    return Calendar.from_ical(client.get(f"/api/conferences/{cid}/ics/{analyst_id}").content).walk("VEVENT")
+
+
+def test_verify_sends_immediately(settings, tmp_path):
+    with make_client(settings, tmp_path) as c:
+        d = upload(c)
+        north = company(d, "Northwind Robotics")
+        d = c.post(f"/api/meetings/{north['id']}/confirm").json()
+        m = company(d, "Northwind Robotics")
+        assert {a["sync"] for a in m["attendees"]} == {"sent"}
+        assert m["review_state"] == "sent"
+        assert d["last_sync"] == {"ok": 2, "failed": 0, "message": "Updated 2 calendar entries."}
+        assert d["counts"]["pending_actions"] == 0
+
+
+def test_editing_a_verified_meeting_updates_calendars(settings, tmp_path):
+    with make_client(settings, tmp_path) as c:
+        d = upload(c)
+        north = company(d, "Northwind Robotics")
+        c.post(f"/api/meetings/{north['id']}/confirm")
+        d = c.patch(f"/api/meetings/{north['id']}", json={"room": "Salon 2"}).json()
+        assert {a["sync"] for a in company(d, "Northwind Robotics")["attendees"]} == {"sent"}
+        [event] = ics_events(c, d["id"], people(c)["Avery Kim"])
+        assert int(event["SEQUENCE"]) == 1 and "Salon 2" in str(event["LOCATION"])
+
+
+def test_deleting_a_sent_meeting_cancels_it(settings, tmp_path):
+    with make_client(settings, tmp_path) as c:
+        d = upload(c)
+        north = company(d, "Northwind Robotics")
+        c.post(f"/api/meetings/{north['id']}/confirm")
+        d = c.delete(f"/api/meetings/{north['id']}").json()
+        assert company(d, "Northwind Robotics")["review_state"] == "cancelled"
+        [event] = ics_events(c, d["id"], people(c)["Avery Kim"])
+        assert str(event["STATUS"]) == "CANCELLED"
+
+
+def test_verify_all_ready_sends_everything(settings, tmp_path):
+    with make_client(settings, tmp_path) as c:
+        d = upload(c)
+        d = c.post(f"/api/conferences/{d['id']}/confirm-ready", json={}).json()
+        assert d["counts"]["sent"] == 11 and d["counts"]["pending_actions"] == 0
+        assert d["last_sync"]["failed"] == 0 and d["last_sync"]["ok"] > 11
+
+
+def test_nothing_to_do_says_up_to_date(settings, tmp_path):
+    with make_client(settings, tmp_path) as c:
+        d = upload(c)
+        north = company(d, "Northwind Robotics")
+        d = c.patch(f"/api/meetings/{north['id']}", json={"notes": "bring model"}).json()
+        assert d["last_sync"] == {"ok": 0, "failed": 0, "message": "Calendars are up to date."}
+
+
+def test_auto_sync_off_keeps_manual_send(settings, tmp_path):
+    settings.auto_sync = False
+    with make_client(settings, tmp_path) as c:
+        d = upload(c)
+        north = company(d, "Northwind Robotics")
+        d = c.post(f"/api/meetings/{north['id']}/confirm").json()
+        assert d["last_sync"] is None
+        assert {a["sync"] for a in company(d, "Northwind Robotics")["attendees"]} == {"not_sent"}
+
+
+def test_unconfigured_graph_never_fails_the_approval(settings, tmp_path):
+    settings.calendar_sink = "graph"
+    with make_client(settings, tmp_path) as c:
+        d = upload(c)
+        north = company(d, "Northwind Robotics")
+        r = c.post(f"/api/meetings/{north['id']}/confirm")
+        assert r.status_code == 200
+        d = r.json()
+        assert company(d, "Northwind Robotics")["status"] == "confirmed"
+        assert "not configured" in d["last_sync"]["message"]
+        assert d["last_sync"]["ok"] == 0
+
+
+class NoAccountsApp:
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def get_accounts(self):
+        return []
+
+
+def test_graph_not_signed_in_asks_to_sign_in(settings, tmp_path):
+    settings.calendar_sink = "graph"
+    auth = GraphAuth("cid", "tid", app_factory=NoAccountsApp)
+    with make_client(settings, tmp_path, graph_auth=auth) as c:
+        d = upload(c)
+        north = company(d, "Northwind Robotics")
+        d = c.post(f"/api/meetings/{north['id']}/confirm").json()
+        assert d["last_sync"]["message"] == "Sign in to Microsoft to update calendars."
+
+
+class FailingSink:
+    name = "ics"
+
+    def apply(self, conference, actions):
+        return [SyncOutcome(a, ok=False, error="boom") for a in actions]
+
+
+def test_sync_failures_are_reported_not_raised(settings, tmp_path):
+    with make_client(settings, tmp_path, sink_factory=FailingSink) as c:
+        d = upload(c)
+        north = company(d, "Northwind Robotics")
+        r = c.post(f"/api/meetings/{north['id']}/confirm")
+        assert r.status_code == 200
+        d = r.json()
+        assert d["last_sync"] == {"ok": 0, "failed": 2, "message": "2 calendar updates failed — use Retry."}
+        assert {a["sync"] for a in company(d, "Northwind Robotics")["attendees"]} == {"failed"}
+```
+
+- [ ] **Step 2: Run to verify it fails**
+
+Run: `cd backend && uv run pytest -q tests/test_autosync.py`
+Expected: FAIL (`last_sync` key missing; `Settings` has no `auto_sync`).
+
+- [ ] **Step 3: Implement**
+
+`backend/mcs/schemas.py`: add, before `ConferenceSummary`:
+
+```python
+class SyncSummary(BaseModel):
+    ok: int
+    failed: int
+    message: str
+```
+
+and add `last_sync: SyncSummary | None = None` as the last field of `ConferenceDetail`.
+
+`backend/mcs/config.py`: add `auto_sync: bool = True  # approval sends: sync calendars after every approval-type change` after `ephemeral`.
+
+`backend/mcs/api/autosync.py`:
+
+```python
+"""Approval sends: after CR approves or edits, bring calendars up to date in the same request.
+
+A sync problem never fails her action; it is reported in `last_sync` instead.
+"""
+from fastapi import Request
+from sqlmodel import Session
+
+from mcs import service
+from mcs.calendar import SinkNotConfigured
+from mcs.calendar.graph_auth import GraphAuthError
+from mcs.schemas import SyncSummary
+
+
+def _plural(n: int, one: str, many: str) -> str:
+    return one if n == 1 else many
+
+
+def auto_sync(request: Request, session: Session, conference_id: int) -> SyncSummary | None:
+    settings = request.app.state.settings
+    if not settings.auto_sync:
+        return None
+    if not service.plan_conference(session, conference_id, settings.calendar_sink):
+        return SyncSummary(ok=0, failed=0, message="Calendars are up to date.")
+    try:
+        sink = request.app.state.sink_factory()
+        if sink.name == "graph" and not request.app.state.graph_auth.status()["signed_in"]:
+            return SyncSummary(ok=0, failed=0, message="Sign in to Microsoft to update calendars.")
+        outcomes = service.send_conference(session, conference_id, sink)
+    except (SinkNotConfigured, GraphAuthError) as exc:
+        return SyncSummary(ok=0, failed=0, message=str(exc))
+    ok = sum(1 for o in outcomes if o.ok)
+    failed = len(outcomes) - ok
+    if failed:
+        return SyncSummary(ok=ok, failed=failed,
+                           message=f"{failed} calendar {_plural(failed, 'update', 'updates')} failed — use Retry.")
+    return SyncSummary(ok=ok, failed=0, message=f"Updated {ok} calendar {_plural(ok, 'entry', 'entries')}.")
+```
+
+Wire it into each listed route: perform the service call, then `summary = auto_sync(request, session, conference_id)`, then build the detail with `service.conference_detail(...)`, set `detail.last_sync = summary`, and return it. Routes that don't already take `request: Request` gain it. Keep the routes thin. A small private helper per router (for example, `_synced_detail(request, session, conference_id, settings)`) is fine.
+
+- [ ] **Step 4: Run tests**
+
+Run: `cd backend && uv run pytest -q`
+Expected: the whole suite passes. The existing `test_api.py` still passes: its send-flow test calls `confirm-ready` and then `send`. With auto-sync on, the `send?dry_run=true` preview now plans nothing (`actions == []`), and the real `send` returns `ok_count == 0`.
+- If an existing `test_api.py` assertion breaks only because auto-sync already sent, update **that test's setup** to set `settings.auto_sync = False` in the fixture before `create_app`. That keeps it testing the manual send path it was written for.
+- Don't delete assertions. Report each such change.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add backend/mcs/config.py backend/mcs/schemas.py backend/mcs/api backend/tests
+git commit -m "feat: approval sends — sync calendars after every approval-type change
+
+Co-Authored-By: <your model> <noreply@anthropic.com>"
+```
+
+### Task 10B: Revised sample PDF and the revision diff engine (pure)
+
+Spec: §15.2 of `docs/superpowers/specs/2026-10-16-meeting-calendar-sync-design.md`. When a broker sends a revised schedule, the app diffs the new extraction against the **broker's last applied version** of each meeting (never against CR's manual edits). This task adds:
+- the revised sample PDF used by tests and the demo;
+- the pure matching and diff engine.
+
+Persistence and API come in later tasks.
+
+**Files:**
+- Modify: `backend/scripts/make_sample_pdfs.py` (add the v2 sample)
+- Create (generated, committed): `samples/broker_a_grid_v2.pdf`, `samples/broker_a_grid_v2.expected.json`
+- Modify: `backend/tests/test_samples.py` (add `"broker_a_grid_v2": 12` to `EXPECTED_COUNTS`)
+- Create: `backend/mcs/revisions.py`
+- Test: `backend/tests/test_revisions_diff.py`
+
+**Interfaces:**
+- Consumes:
+  - `ExtractedMeeting` and `parse_extraction` (`mcs.extraction.schema`);
+  - `parse_date` and `parse_time` (`mcs.normalize`);
+  - `normalize_name` (`mcs.roster`).
+- Produces (`mcs.revisions`):
+  - `COMPARED_FIELDS = ("date", "start", "end", "room", "format", "ticker", "company", "company_attendees", "firm_attendees")`
+  - `FieldChange(field: str, before: Any, after: Any)` (frozen)
+  - `Change(id: str, kind: str, meeting_id: int | None, company: str, summary: str, fields: tuple[FieldChange, ...] = (), new: ExtractedMeeting | None = None)` (frozen). `kind` is `"changed" | "added" | "removed"`. Ids are `"c1"`, `"c2"`, … in display order.
+  - `RevisionDiff(changes: tuple[Change, ...], unchanged: tuple[tuple[int, ExtractedMeeting], ...])` (frozen)
+  - `same_value(field: str, a, b) -> bool`
+  - `diff_revision(baseline: Sequence[tuple[int, ExtractedMeeting]], new_rows: Sequence[ExtractedMeeting]) -> RevisionDiff`. Here `baseline` is (meeting_id, the broker's last applied row) for each live meeting that has one.
+
+**The v2 sample.** It is broker A, revised, with exactly five changes:
+1. Cobalt Freight Lines moves from 10:00–10:45 to 14:30–15:15.
+2. Meridian Rail Holdings' room changes from "TBD" to "Suite 1505".
+3. Halcyon Aerostructures gains "Jordan Lee".
+4. Tidewater Pumps is dropped.
+5. A new meeting is added: Atlas Rail Systems (ATRL), 2026-11-11 16:00–16:45, Salon 2, "Ben Okoro, CFO", with Avery Kim.
+
+The header gains a line, "Revised November 3, 2026 — replaces the earlier schedule".
+
+- [ ] **Step 1: Extend the sample generator** (`backend/scripts/make_sample_pdfs.py`)
+
+Add, after `BROKER_A` (add `import copy` at the top):
+
+```python
+def _broker_a_v2() -> dict:
+    d = copy.deepcopy(BROKER_A)
+    rows = {m["company"]: m for m in d["meetings"]}
+    rows["Cobalt Freight Lines"].update(start="14:30", end="15:15")
+    rows["Meridian Rail Holdings"]["room"] = "Suite 1505"
+    rows["Halcyon Aerostructures"]["firm_attendees"] = ["Taylor Brooks", "Jordan Lee"]
+    d["meetings"] = [m for m in d["meetings"] if m["company"] != "Tidewater Pumps"]
+    d["meetings"].append(mt("2026-11-11", "16:00", "16:45", "one_on_one", "Salon 2", "Atlas Rail Systems", "ATRL",
+                            ["Ben Okoro, CFO"], ["Avery Kim"], 2))
+    d["meetings"].sort(key=lambda m: (m["date"], m["start"]))
+    return d
+
+
+BROKER_A_V2 = _broker_a_v2()
+```
+
+Generalize `build_a` so it can render either version **without changing v1's bytes**:
+- Change the signature to `build_a(out: Path, data: dict = BROKER_A, filename: str = "broker_a_grid.pdf", note: str | None = None)`.
+- Use `data` instead of `BROKER_A` inside it.
+- When `note` is given, insert it as an extra header line right after the dates line ("November 10–11, 2026").
+- Write to `out / filename`.
+
+In `main()`, call `build_a(out)` exactly as before. Then call `build_a(out, BROKER_A_V2, "broker_a_grid_v2.pdf", "Revised November 3, 2026 — replaces the earlier schedule")` and write `broker_a_grid_v2.expected.json` from `BROKER_A_V2` in the same loop as the others.
+
+Run `cd backend && uv run python scripts/make_sample_pdfs.py`. Then check with `git status`:
+- `samples/broker_a_grid.pdf` is **unchanged** (byte-identical);
+- the two v2 files are new.
+
+Add `"broker_a_grid_v2": 12` to `EXPECTED_COUNTS` in `tests/test_samples.py`. The page-count and regeneration tests then cover v2 automatically: day 1 has 6 rows on page 1 and day 2 has 6 rows on page 2.
+
+- [ ] **Step 2: Write the failing diff tests** — `backend/tests/test_revisions_diff.py`:
+
+```python
+import json
+
+from mcs.config import REPO_ROOT
+from mcs.extraction.schema import ExtractedMeeting, parse_extraction
+from mcs.revisions import diff_revision, same_value
+
+
+def sample(name):
+    return parse_extraction(json.loads((REPO_ROOT / "samples" / f"{name}.expected.json").read_text()))
+
+
+A = sample("broker_a_grid")
+V2 = sample("broker_a_grid_v2")
+BASE = [(i, m) for i, m in enumerate(A.meetings, start=1)]
+
+
+def row(**kw):
+    base = dict(company="Northwind Robotics", date="2026-11-10", start="08:00", end="08:45", room="Salon 4",
+                firm_attendees=["Avery Kim"])
+    return ExtractedMeeting(**{**base, **kw})
+
+
+def test_identical_schedule_has_no_changes():
+    d = diff_revision(BASE, A.meetings)
+    assert d.changes == ()
+    assert len(d.unchanged) == 12
+
+
+def test_v2_sample_has_exactly_five_changes():
+    d = diff_revision(BASE, V2.meetings)
+    assert [(c.id, c.kind, c.company) for c in d.changes] == [
+        ("c1", "changed", "Cobalt Freight Lines"),
+        ("c2", "changed", "Halcyon Aerostructures"),
+        ("c3", "changed", "Meridian Rail Holdings"),
+        ("c4", "removed", "Tidewater Pumps"),
+        ("c5", "added", "Atlas Rail Systems"),
+    ]
+    assert [c.summary for c in d.changes] == [
+        "Cobalt Freight Lines: time 10:00–10:45 → 14:30–15:15",
+        "Halcyon Aerostructures: colleagues +Jordan Lee",
+        "Meridian Rail Holdings: room TBD → Suite 1505",
+        "Dropped: Tidewater Pumps on 2026-11-11 at 10:00",
+        "New: Atlas Rail Systems on 2026-11-11 at 16:00",
+    ]
+    assert len(d.unchanged) == 8
+    cobalt, _, _, tidewater, atlas = d.changes
+    assert cobalt.meeting_id == 3 and {f.field for f in cobalt.fields} == {"start", "end"}
+    assert cobalt.new.start == "14:30"
+    assert tidewater.meeting_id == 9 and tidewater.new is None
+    assert atlas.meeting_id is None and atlas.new.ticker == "ATRL"
+
+
+def test_moved_to_another_day_is_one_change():
+    [c] = diff_revision([(1, row())], [row(date="2026-11-11")]).changes
+    assert (c.kind, c.meeting_id) == ("changed", 1)
+    assert c.summary == "Northwind Robotics: date 2026-11-10 → 2026-11-11"
+
+
+def test_slightly_renamed_company_matches_on_the_same_day():
+    [c] = diff_revision([(1, row())], [row(company="Northwind Robotic")]).changes
+    assert c.kind == "changed"
+    assert c.summary == "Northwind Robotic: name Northwind Robotics → Northwind Robotic"
+
+
+def test_names_case_and_punctuation_are_normalized():
+    d = diff_revision([(1, row(firm_attendees=["A. Kim"]))], [row(firm_attendees=["a kim"], room="SALON 4")])
+    assert d.changes == () and [mid for mid, _ in d.unchanged] == [1]
+
+
+def test_ambiguous_duplicates_are_conservative():
+    old = [(1, row()), (2, row(start="09:00", end="09:45"))]
+    d = diff_revision(old, [row(start="10:00", end="10:45")])
+    assert sorted(c.kind for c in d.changes) == ["added", "removed", "removed"]
+
+
+def test_missing_end_reads_as_question_mark():
+    [c] = diff_revision([(1, row(end=None))], [row()]).changes
+    assert c.summary == "Northwind Robotics: time 08:00–? → 08:00–08:45"
+
+
+def test_colleague_removed_and_added():
+    [c] = diff_revision([(1, row(firm_attendees=["Avery Kim", "Jordan Lee"]))],
+                        [row(firm_attendees=["Avery Kim", "Riley Chen"])]).changes
+    assert c.summary == "Northwind Robotics: colleagues +Riley Chen, -Jordan Lee"
+
+
+def test_same_value_rules():
+    assert same_value("start", "8:00 AM", "08:00")
+    assert same_value("date", "2026-11-10", "2026-11-10T00:00:00")
+    assert same_value("firm_attendees", ["Avery Kim", "Jordan Lee"], ["jordan lee", "avery kim"])
+    assert same_value("room", None, "")
+    assert not same_value("room", "Salon 4", "Salon 2")
+```
+
+Run: `cd backend && uv run pytest -q tests/test_revisions_diff.py tests/test_samples.py`
+Expected: `test_revisions_diff.py` fails with `ModuleNotFoundError: mcs.revisions`. `test_samples.py` passes once Step 1 is done.
+
+- [ ] **Step 3: Implement `backend/mcs/revisions.py`**
+
+```python
+"""Diff a revised broker schedule against the broker's last applied version (never against CR's edits)."""
+import datetime as dt
+from collections import Counter
+from dataclasses import dataclass
+from difflib import SequenceMatcher
+from typing import Any, Callable, Sequence
+
+from mcs.extraction.schema import ExtractedMeeting
+from mcs.normalize import parse_date, parse_time
+from mcs.roster import normalize_name
+
+COMPARED_FIELDS = ("date", "start", "end", "room", "format", "ticker", "company", "company_attendees", "firm_attendees")
+COMPANY_SIMILARITY = 0.85
+FORMAT_LABELS = {"one_on_one": "1x1", "group": "Group", "meal": "Meal", "other": "Meeting"}
+
+
+@dataclass(frozen=True)
+class FieldChange:
+    field: str
+    before: Any
+    after: Any
+
+
+@dataclass(frozen=True)
+class Change:
+    id: str
+    kind: str  # "changed" | "added" | "removed"
+    meeting_id: int | None
+    company: str
+    summary: str
+    fields: tuple[FieldChange, ...] = ()
+    new: ExtractedMeeting | None = None
+
+
+@dataclass(frozen=True)
+class RevisionDiff:
+    changes: tuple[Change, ...]
+    unchanged: tuple[tuple[int, ExtractedMeeting], ...]
+
+
+def _norm(value: Any):
+    if isinstance(value, (list, tuple)):
+        return frozenset(n for n in (normalize_name(v) for v in value) if n)
+    return normalize_name(value or "")
+
+
+def same_value(field: str, a: Any, b: Any) -> bool:
+    if field == "date":
+        return parse_date(a) == parse_date(b)
+    if field in ("start", "end"):
+        return parse_time(a) == parse_time(b)
+    return _norm(a) == _norm(b)
+
+
+def _company(m: ExtractedMeeting) -> str:
+    return normalize_name(m.company)
+
+
+def _sort_key(m: ExtractedMeeting):
+    d, t = parse_date(m.date), parse_time(m.start)
+    return (d is None, d or dt.date.max, t is None, t or dt.time.max, _company(m))
+
+
+def _pair_unique(old: list, new: list, key: Callable):
+    old_counts = Counter(key(m) for _, m in old)
+    new_counts = Counter(key(m) for m in new)
+    new_by_key = {key(m): m for m in new if new_counts[key(m)] == 1}
+    pairs, old_left = [], []
+    for mid, m in old:
+        k = key(m)
+        if old_counts[k] == 1 and new_counts.get(k) == 1:
+            pairs.append((mid, m, new_by_key[k]))
+        else:
+            old_left.append((mid, m))
+    used = {id(n) for _, _, n in pairs}
+    return pairs, old_left, [m for m in new if id(m) not in used]
+
+
+def _pair_fuzzy(old: list, new: list):
+    def similar(a: ExtractedMeeting, b: ExtractedMeeting) -> bool:
+        return (parse_date(a.date) == parse_date(b.date)
+                and SequenceMatcher(None, _company(a), _company(b)).ratio() >= COMPANY_SIMILARITY)
+
+    old_cands = {i: [j for j, n in enumerate(new) if similar(o, n)] for i, (_, o) in enumerate(old)}
+    new_cands = {j: [i for i in old_cands if j in old_cands[i]] for j in range(len(new))}
+    pairs, used_old, used_new = [], set(), set()
+    for i, js in old_cands.items():
+        if len(js) == 1 and len(new_cands[js[0]]) == 1:
+            pairs.append((old[i][0], old[i][1], new[js[0]]))
+            used_old.add(i)
+            used_new.add(js[0])
+    return (pairs, [o for i, o in enumerate(old) if i not in used_old],
+            [n for j, n in enumerate(new) if j not in used_new])
+
+
+def _when(m: ExtractedMeeting) -> str:
+    return (f" on {m.date}" if m.date else "") + (f" at {m.start}" if m.start else "")
+
+
+def _describe_changed(before: ExtractedMeeting, after: ExtractedMeeting, fields: tuple[FieldChange, ...]) -> str:
+    changed = {f.field for f in fields}
+    parts = []
+    if "date" in changed:
+        parts.append(f"date {before.date or '?'} → {after.date or '?'}")
+    if changed & {"start", "end"}:
+        parts.append(f"time {before.start or '?'}–{before.end or '?'} → {after.start or '?'}–{after.end or '?'}")
+    if "room" in changed:
+        parts.append(f"room {before.room or '—'} → {after.room or '—'}")
+    if "format" in changed:
+        parts.append(f"format {FORMAT_LABELS.get(before.format, before.format)} → {FORMAT_LABELS.get(after.format, after.format)}")
+    if "firm_attendees" in changed:
+        old_names = {normalize_name(n) for n in before.firm_attendees}
+        new_names = {normalize_name(n) for n in after.firm_attendees}
+        added = [f"+{n}" for n in after.firm_attendees if normalize_name(n) not in old_names]
+        removed = [f"-{n}" for n in before.firm_attendees if normalize_name(n) not in new_names]
+        parts.append("colleagues " + ", ".join(added + removed))
+    if "company_attendees" in changed:
+        parts.append("executives updated")
+    if "ticker" in changed:
+        parts.append(f"ticker {before.ticker or '—'} → {after.ticker or '—'}")
+    if "company" in changed:
+        parts.append(f"name {before.company} → {after.company}")
+    return f"{after.company}: " + "; ".join(parts)
+
+
+def diff_revision(baseline: Sequence[tuple[int, ExtractedMeeting]], new_rows: Sequence[ExtractedMeeting]) -> RevisionDiff:
+    old, new = list(baseline), list(new_rows)
+    pairs = []
+    for key in (lambda m: (parse_date(m.date), _company(m)), _company):
+        found, old, new = _pair_unique(old, new, key)
+        pairs += found
+    found, old, new = _pair_fuzzy(old, new)
+    pairs += found
+
+    entries, unchanged = [], []
+    for mid, before, after in pairs:
+        fields = tuple(FieldChange(f, getattr(before, f), getattr(after, f))
+                       for f in COMPARED_FIELDS if not same_value(f, getattr(before, f), getattr(after, f)))
+        if not fields:
+            unchanged.append((mid, after))
+            continue
+        entries.append((_sort_key(before), dict(kind="changed", meeting_id=mid, company=after.company,
+                                                summary=_describe_changed(before, after, fields),
+                                                fields=fields, new=after)))
+    for mid, before in old:
+        entries.append((_sort_key(before), dict(kind="removed", meeting_id=mid, company=before.company,
+                                                summary=f"Dropped: {before.company}{_when(before)}")))
+    for after in new:
+        entries.append((_sort_key(after), dict(kind="added", meeting_id=None, company=after.company,
+                                               summary=f"New: {after.company}{_when(after)}", new=after)))
+    entries.sort(key=lambda e: e[0])
+    changes = tuple(Change(id=f"c{i}", **entry) for i, (_, entry) in enumerate(entries, start=1))
+    return RevisionDiff(changes=changes, unchanged=tuple(unchanged))
+```
+
+Note: backslash escapes inside f-string replacement fields (`'—'`) need Python ≥ 3.12, which the project requires. If your interpreter objects, hoist them into a module constant `DASH = "—"`.
+
+- [ ] **Step 4: Run tests**
+
+Run: `cd backend && uv run pytest -q`
+Expected: all pass, including the regeneration test, which shows v1 bytes unchanged.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add backend/scripts/make_sample_pdfs.py backend/tests/test_samples.py backend/tests/test_revisions_diff.py \
+  backend/mcs/revisions.py samples/broker_a_grid_v2.pdf samples/broker_a_grid_v2.expected.json
+git commit -m "feat: revised broker sample and the revision diff engine
+
+Co-Authored-By: <your model> <noreply@anthropic.com>"
+```
+
+Keep every literal exactly as written, including `–` (en dash), `→` (arrow) and `—` (em dash).
+
+### Task 10C: Revision persistence and service — baselines, detection, apply/discard
+
+Spec: §15.2 of `docs/superpowers/specs/2026-10-16-meeting-calendar-sync-design.md`. CR uploads a revised broker PDF. The app recognises the conference, diffs it against each meeting's **broker baseline** (`source_json`), and shows "Revision N — K changes". CR accepts all or some; accepting is her approval. Calendars sync afterwards: that's the API task.
+
+**Files:**
+- Modify: `backend/mcs/models.py` (`Meeting.source_json`; new `Revision` table)
+- Modify: `backend/mcs/db.py` (add the `source_json` column to an existing `meeting` table if it's missing)
+- Modify: `backend/mcs/schemas.py`:
+  - add `FieldChangeOut`, `ProposedMeeting`, `ChangeOut`, `RevisionOut`, `ApplyRevisionIn`;
+  - add `pending_revision: RevisionOut | None = None` and `revision_number: int = 1` to `ConferenceDetail`.
+- Modify: `backend/mcs/service.py`:
+  - `create_conference` records `source_json`;
+  - `delete_conference` also deletes `Revision` rows;
+  - add public `roster_for(session)` and `enforce_status(session, conference)` wrappers;
+  - `conference_detail` fills `pending_revision` and `revision_number`.
+- Create: `backend/mcs/revision_service.py`
+- Test: `backend/tests/test_revision_service.py`, `backend/tests/test_db.py`
+
+**Interfaces:**
+- Consumes:
+  - `diff_revision`, `Change` and `RevisionDiff` (`mcs.revisions`, Task 10B);
+  - `ExtractedMeeting` and `ExtractionResult`;
+  - service functions (Task 8): `delete_meeting`, `confirm_ready`, `get_conference`, `create_conference`, `list_analysts`, `NotFound`, `Conflict`, `InvalidInput`;
+  - `build_meetings`, `parse_date`, `parse_time` and `add_minutes` (`mcs.normalize`);
+  - `match_name`, `NO_MATCH` and `roster_entries` (`mcs.roster`).
+- Produces:
+  - `Meeting.source_json: str = ""`. This is the broker's last applied row (`ExtractedMeeting` JSON); empty for manual meetings.
+  - `Revision` table: `id`, `conference_id` (FK, indexed), `number: int`, `pdf_filename`, `pdf_path`, `extractor`, `status` (`pending` | `applied` | `discarded`, default `pending`), `result_json` (the full new `ExtractionResult` JSON), `created_at`.
+  - Schemas:
+    - `FieldChangeOut(field: str, before: str | list[str] | None, after: str | list[str] | None)`;
+    - `ProposedMeeting(date, start, end, room, company, ticker, format, firm_attendees: list[str], company_attendees: list[str], page: int | None)`, all optional except `company`;
+    - `ChangeOut(id, kind, meeting_id: int | None, company, summary, fields: list[FieldChangeOut], new: ProposedMeeting | None)`;
+    - `RevisionOut(id, number, pdf_filename, created_at, changes: list[ChangeOut], unchanged_count: int)`;
+    - `ApplyRevisionIn(accepted: list[str] | None = None)`.
+  - `mcs.revision_service`:
+    - `get_revision(session, revision_id) -> Revision` (raises NotFound);
+    - `baseline_rows(session, conference_id) -> list[tuple[int, ExtractedMeeting]]`: live meetings with a baseline, ordered by id;
+    - `find_matching_conference(session, result: ExtractionResult) -> Conference | None`;
+    - `create_revision(session, conference, result, *, pdf_filename, pdf_path, extractor) -> tuple[Revision, list[str]]`, which returns the superseded pending revisions' PDF paths;
+    - `pending_revision(session, conference_id) -> Revision | None`;
+    - `applied_count(session, conference_id) -> int`;
+    - `revision_out(session, revision) -> RevisionOut`;
+    - `apply_revision(session, revision_id, accepted: Sequence[str] | None, default_minutes: int) -> tuple[Conference, str]`, which returns the conference's previous PDF path;
+    - `discard_revision(session, revision_id) -> str` (the PDF path);
+    - `revision_as_new_conference(session, revision_id, default_minutes) -> Conference`;
+    - `revision_pdf_paths(session, conference_id) -> list[str]`.
+
+**Rules (from spec §15.2):**
+- **Detection, in `find_matching_conference`.** Walk conferences newest first and return the first that matches.
+  - Name match: the normalized `conference_name` is non-empty and equals the normalized conference name.
+  - Fallback: the normalized `hotel` is non-empty and equal, and the date range of the result's meetings overlaps the conference's meeting date range.
+- **One pending revision per conference.** `create_revision` marks older pending revisions `discarded` and returns their PDF paths. `number` = max(existing numbers, default 1) + 1.
+- **Diffing** always recomputes `diff_revision(baseline_rows(...), result.meetings)`. Change ids are therefore stable for the same inputs.
+- **Apply** (accepted ids, or `None` for all).
+  - Unknown ids → `InvalidInput`. A revision that isn't pending → `Conflict`.
+  - **changed:** update only the changed fields from `change.new`:
+    - `date` → `parse_date`.
+    - `start` → `parse_time`.
+    - `end`:
+      - If `end` changed and the new end is present, set it and clear `end_assumed`.
+      - If `end` changed and the new end is absent, set start + default minutes, with `end_assumed` true.
+      - If only `start` changed and the meeting's end was assumed, recompute it from the new start.
+    - `room`, `ticker` and `notes`: cleaned the same way service does it.
+    - `format`, `company` and `company_attendees`.
+    - `firm_attendees`:
+      - set `raw_attendee_names`;
+      - the desired colleagues are the existing `manual` and `default` attendees, plus roster matches of the new names (or the `schedule_for` addressee when the row lists nobody);
+      - update attendee rows **in place**: delete rows no longer desired, insert missing ones, and update the `match` kind of kept ones. Never delete and re-insert the same primary key in one flush.
+    - Then refresh `source_json` and `source_page` from `change.new`.
+  - **removed:** `service.delete_meeting` (cancels if sent, deletes otherwise).
+  - **added:** build one meeting via `build_meetings` from the revision's header and that row, with `source_json` set. After the loop, verify the added meetings that have no block flags (`service.confirm_ready(session, conference_id, added_ids)`).
+  - **unchanged matches:** refresh `source_json` and `source_page`.
+  - **rejected changes:** untouched, so their old baseline remains.
+  - Then point the conference's `pdf_path` and `pdf_filename` at the revision, set the revision `applied`, commit, and run `service.enforce_status`. Return `(conference, previous_pdf_path)`.
+- **Discard:** status `discarded`; return its PDF path.
+- **As a new conference:** `service.create_conference(...)` from `result_json` with the revision's PDF. Mark the revision `discarded`, but don't return its PDF for deletion: the new conference owns it.
+- **`conference_detail`** sets `pending_revision` (via `revision_out`) and `revision_number = 1 + applied_count`. Import `mcs.revision_service` inside the function to avoid a circular import.
+- **db.py.** After `create_all`, if `PRAGMA table_info(meeting)` lacks `source_json`, run `ALTER TABLE meeting ADD COLUMN source_json VARCHAR NOT NULL DEFAULT ''`. This upgrades existing local databases.
+
+- [ ] **Step 1: Write the failing tests**
+
+`backend/tests/test_db.py`:
+
+```python
+import sqlite3
+
+from mcs.db import make_engine
+
+
+def test_old_database_gets_source_json(settings):
+    settings.data_dir.mkdir(parents=True)
+    con = sqlite3.connect(settings.data_dir / "app.db")
+    con.execute("CREATE TABLE meeting (id INTEGER PRIMARY KEY, conference_id INTEGER, company VARCHAR NOT NULL)")
+    con.commit()
+    con.close()
+    engine = make_engine(settings)
+    with engine.connect() as c:
+        cols = {row[1] for row in c.exec_driver_sql("PRAGMA table_info(meeting)")}
+    assert "source_json" in cols
+```
+
+`backend/tests/test_revision_service.py`:
+
+```python
+import json
+
+import pytest
+from sqlmodel import select
+
+from mcs import revision_service as rs
+from mcs import service
+from mcs.calendar.ics import IcsSink
+from mcs.config import REPO_ROOT
+from mcs.extraction.schema import ExtractedMeeting, parse_extraction
+from mcs.models import Meeting, Revision
+from mcs.schemas import ConferenceUpdate, MeetingCreate, MeetingUpdate
+
+SAMPLES = REPO_ROOT / "samples"
+
+
+def sample(name):
+    return parse_extraction(json.loads((SAMPLES / f"{name}.expected.json").read_text()))
+
+
+@pytest.fixture
+def seeded(session):
+    service.seed_roster(session, SAMPLES / "roster.sample.json")
+    return session
+
+
+def conf_a(s):
+    return service.create_conference(s, sample("broker_a_grid"), pdf_filename="broker_a_grid.pdf",
+                                     pdf_path="/tmp/a.pdf", extractor="fake")
+
+
+def revise(s, conf, name="broker_a_grid_v2"):
+    return rs.create_revision(s, conf, sample(name), pdf_filename=f"{name}.pdf", pdf_path=f"/tmp/{name}.pdf",
+                              extractor="fake")
+
+
+def meeting(s, company):
+    return s.exec(select(Meeting).where(Meeting.company == company)).one()
+
+
+def attendee_names(s, conf_id, company):
+    detail = service.conference_detail(s, conf_id, "ics")
+    return [a.name for a in next(m for m in detail.meetings if m.company == company).attendees]
+
+
+def ids(s):
+    return {a.name: a.id for a in service.list_analysts(s)}
+
+
+def test_new_conferences_record_the_broker_baseline(seeded):
+    conf = conf_a(seeded)
+    cobalt = meeting(seeded, "Cobalt Freight Lines")
+    assert ExtractedMeeting.model_validate_json(cobalt.source_json).start == "10:00"
+    assert len(rs.baseline_rows(seeded, conf.id)) == 12
+
+
+def test_revised_pdf_matches_its_conference(seeded):
+    conf = conf_a(seeded)
+    service.create_conference(seeded, sample("broker_b_by_company"), pdf_filename="b.pdf", pdf_path="/tmp/b.pdf",
+                              extractor="fake")
+    assert rs.find_matching_conference(seeded, sample("broker_a_grid_v2")).id == conf.id
+    assert rs.find_matching_conference(seeded, sample("broker_c_itinerary")) is None
+
+
+def test_match_by_hotel_and_dates_after_rename(seeded):
+    conf = conf_a(seeded)
+    service.update_conference(seeded, conf.id, ConferenceUpdate(name="NYC industrials trip"))
+    assert rs.find_matching_conference(seeded, sample("broker_a_grid_v2")).id == conf.id
+
+
+def test_pending_revision_lists_the_five_changes(seeded):
+    conf = conf_a(seeded)
+    rev, superseded = revise(seeded, conf)
+    assert (rev.number, rev.status, superseded) == (2, "pending", [])
+    out = rs.revision_out(seeded, rev)
+    assert [c.kind for c in out.changes] == ["changed", "changed", "changed", "removed", "added"]
+    assert out.unchanged_count == 8
+    assert out.changes[0].fields[0].field in ("start", "end")
+    assert out.changes[4].new.company == "Atlas Rail Systems"
+    detail = service.conference_detail(seeded, conf.id, "ics")
+    assert detail.pending_revision.id == rev.id and detail.revision_number == 1
+
+
+def test_apply_all_updates_meetings_and_keeps_verification(seeded):
+    conf = conf_a(seeded)
+    service.confirm_ready(seeded, conf.id)
+    service.send_conference(seeded, conf.id, IcsSink())
+    rev, _ = revise(seeded, conf)
+    conference, old_pdf = rs.apply_revision(seeded, rev.id, None, 45)
+    assert old_pdf == "/tmp/a.pdf" and conference.pdf_filename == "broker_a_grid_v2.pdf"
+    cobalt = meeting(seeded, "Cobalt Freight Lines")
+    assert (cobalt.start_time.strftime("%H:%M"), cobalt.end_time.strftime("%H:%M"), cobalt.status) == (
+        "14:30", "15:15", "confirmed")
+    assert meeting(seeded, "Meridian Rail Holdings").room == "Suite 1505"
+    assert attendee_names(seeded, conf.id, "Halcyon Aerostructures") == ["Jordan Lee", "Taylor Brooks"]
+    assert seeded.exec(select(Meeting).where(Meeting.company == "Tidewater Pumps")).first() is None  # never sent
+    assert meeting(seeded, "Atlas Rail Systems").status == "confirmed"
+    assert attendee_names(seeded, conf.id, "Atlas Rail Systems") == ["Avery Kim"]
+    assert seeded.get(Revision, rev.id).status == "applied"
+    plan = service.plan_conference(seeded, conf.id, "ics")
+    assert sorted((a.kind, a.analyst_name) for a in plan) == [
+        ("create", "Avery Kim"), ("create", "Jordan Lee"), ("update", "Avery Kim"),
+        ("update", "Morgan Diaz"), ("update", "Riley Chen"), ("update", "Taylor Brooks")]
+    detail = service.conference_detail(seeded, conf.id, "ics")
+    assert detail.revision_number == 2 and detail.pending_revision is None
+
+
+def test_rejected_changes_come_back_next_time(seeded):
+    conf = conf_a(seeded)
+    rev, _ = revise(seeded, conf)
+    rs.apply_revision(seeded, rev.id, ["c1"], 45)
+    assert meeting(seeded, "Meridian Rail Holdings").room == "TBD"
+    rev2, _ = revise(seeded, conf)
+    assert rev2.number == 3
+    assert [c.company for c in rs.revision_out(seeded, rev2).changes] == [
+        "Halcyon Aerostructures", "Meridian Rail Holdings", "Tidewater Pumps", "Atlas Rail Systems"]
+
+
+def test_manual_edits_are_not_broker_changes(seeded):
+    conf = conf_a(seeded)
+    lumen = meeting(seeded, "Lumen Sensor Works")
+    service.update_meeting(seeded, lumen.id, MeetingUpdate(room="Salon 9"), 45)
+    manual = service.add_meeting(seeded, conf.id, MeetingCreate(company="Coffee with IR", date="2026-11-10",
+                                                                start="17:00"), 45)
+    rev, _ = revise(seeded, conf)
+    companies = [c.company for c in rs.revision_out(seeded, rev).changes]
+    assert "Lumen Sensor Works" not in companies and "Coffee with IR" not in companies
+    rs.apply_revision(seeded, rev.id, None, 45)
+    assert meeting(seeded, "Lumen Sensor Works").room == "Salon 9"
+    assert seeded.get(Meeting, manual.id) is not None
+
+
+def test_removed_sent_meeting_is_cancelled(seeded):
+    conf = conf_a(seeded)
+    tide = meeting(seeded, "Tidewater Pumps")
+    service.update_meeting(seeded, tide.id, MeetingUpdate(attendee_ids=[ids(seeded)["Jordan Lee"]],
+                                                          ignored_names=["Chris Wong"]), 45)
+    service.confirm_meeting(seeded, tide.id)
+    service.send_conference(seeded, conf.id, IcsSink())
+    rev, _ = revise(seeded, conf)
+    rs.apply_revision(seeded, rev.id, ["c4"], 45)
+    assert meeting(seeded, "Tidewater Pumps").status == "cancelled"
+    assert [(a.kind, a.analyst_name) for a in service.plan_conference(seeded, conf.id, "ics")] == [
+        ("cancel", "Jordan Lee")]
+
+
+def test_revision_rules(seeded):
+    conf = conf_a(seeded)
+    rev, _ = revise(seeded, conf)
+    rev2, superseded = revise(seeded, conf)
+    assert superseded == ["/tmp/broker_a_grid_v2.pdf"]
+    assert seeded.get(Revision, rev.id).status == "discarded"
+    with pytest.raises(service.Conflict):
+        rs.apply_revision(seeded, rev.id, None, 45)
+    with pytest.raises(service.InvalidInput):
+        rs.apply_revision(seeded, rev2.id, ["c99"], 45)
+    assert rs.discard_revision(seeded, rev2.id) == "/tmp/broker_a_grid_v2.pdf"
+    assert service.conference_detail(seeded, conf.id, "ics").pending_revision is None
+    with pytest.raises(service.NotFound):
+        rs.get_revision(seeded, 999)
+
+
+def test_revision_can_become_a_new_conference(seeded):
+    conf = conf_a(seeded)
+    rev, _ = revise(seeded, conf)
+    new_conf = rs.revision_as_new_conference(seeded, rev.id, 45)
+    assert new_conf.id != conf.id and new_conf.pdf_path == "/tmp/broker_a_grid_v2.pdf"
+    assert len(service.conference_detail(seeded, new_conf.id, "ics").meetings) == 12
+    assert seeded.get(Revision, rev.id).status == "discarded"
+
+
+def test_delete_conference_removes_revisions(seeded):
+    conf = conf_a(seeded)
+    revise(seeded, conf)
+    assert rs.revision_pdf_paths(seeded, conf.id) == ["/tmp/broker_a_grid_v2.pdf"]
+    service.delete_conference(seeded, conf.id)
+    assert seeded.exec(select(Revision)).all() == []
+```
+
+Run: `cd backend && uv run pytest -q tests/test_revision_service.py tests/test_db.py` → FAIL (`mcs.revision_service` doesn't exist).
+
+- [ ] **Step 2: Implement.** Follow the Rules above.
+  - Keep `service.py`'s existing behaviour and tests green.
+  - `revision_service.py` is a new module of roughly 250 lines. Keep the helpers small: `_apply_changed`, `_set_matched_attendees`, `_create_added`, `_date_range`.
+  - Use `session.execute(delete(...))` for bulk deletes. Always reassign JSON lists; never mutate them.
+  - `revision_out` maps `Change` → `ChangeOut`. `FieldChange.before` and `after` values are passed through: strings, lists or `None`.
+
+- [ ] **Step 3: Run tests.** `cd backend && uv run pytest -q` → the whole suite passes.
+
+- [ ] **Step 4: Commit** with message `feat: broker revisions — baselines, detection, apply and discard` and your Co-Authored-By trailer.
+
+### Task 10D: Revision endpoints and auto-detect on upload (API)
+
+Spec: §15.2 of `docs/superpowers/specs/2026-10-16-meeting-calendar-sync-design.md`.
+
+**Files:**
+- Modify: `backend/mcs/api/routes_conferences.py`:
+  - the upload takes `mode`;
+  - new `POST /{id}/revisions`;
+  - the delete also removes revision PDFs;
+  - factor out shared upload validation and extraction helpers.
+- Create: `backend/mcs/api/routes_revisions.py`
+- Modify: `backend/mcs/api/app.py` (include the new router before the SPA catch-all)
+- Test: `backend/tests/test_revisions_api.py`
+
+**Interfaces:**
+- Consumes:
+  - `mcs.revision_service` (Task 10C): `find_matching_conference`, `create_revision`, `get_revision`, `apply_revision`, `discard_revision`, `revision_as_new_conference`, `revision_pdf_paths`;
+  - `ApplyRevisionIn`;
+  - `auto_sync` (`mcs.api.autosync`, Task 10A);
+  - the existing upload validation in `routes_conferences.py` (Task 9).
+- Produces:
+  - `POST /api/conferences` takes an optional form field `mode` = `auto` (the default) or `new`; anything else → 400.
+    - With `auto`, when `find_matching_conference` finds a conference, the upload becomes a **pending revision** of it, and the response is that conference's `ConferenceDetail` (201) with `pending_revision` set.
+    - Otherwise it creates a new conference, as before.
+    - Superseded pending revisions' PDFs are deleted from `uploads_dir`.
+  - `POST /api/conferences/{id}/revisions` (multipart `file`) → 201 `ConferenceDetail` with `pending_revision`. Validation is identical to the upload, and nothing is stored on failure.
+  - `GET /api/revisions/{id}/pdf` → the revision's PDF, inline.
+  - `POST /api/revisions/{id}/apply` (body `ApplyRevisionIn`, optional) → `ConferenceDetail` with `last_sync` from auto-sync. It deletes the conference's previous PDF when that file is inside `uploads_dir`.
+  - `POST /api/revisions/{id}/discard` → `ConferenceDetail`. It deletes the revision PDF when inside `uploads_dir`.
+  - `POST /api/revisions/{id}/as-new-conference` → 201 `ConferenceDetail` of the new conference.
+  - `DELETE /api/conferences/{id}` also deletes the revision PDFs inside `uploads_dir`.
+  - Errors map as before: NotFound → 404, Conflict → 409, InvalidInput → 400.
+
+Every file deletion goes through one helper, `_remove_upload(path, settings)`, that only unlinks files whose resolved path is inside `settings.uploads_dir`.
+
+- [ ] **Step 1: Write the failing test** — `backend/tests/test_revisions_api.py`:
+
+```python
+import pytest
+from fastapi.testclient import TestClient
+from sqlmodel import Session
+
+from mcs import service
+from mcs.api.app import create_app
+from mcs.config import REPO_ROOT
+
+SAMPLES = REPO_ROOT / "samples"
+PDF_A = (SAMPLES / "broker_a_grid.pdf").read_bytes()
+PDF_A2 = (SAMPLES / "broker_a_grid_v2.pdf").read_bytes()
+
+
+@pytest.fixture
+def client(settings, tmp_path):
+    settings.frontend_dist = tmp_path / "no-dist"
+    app = create_app(settings)
+    with Session(app.state.engine) as s:
+        service.seed_roster(s, SAMPLES / "roster.sample.json")
+    with TestClient(app) as c:
+        yield c
+
+
+def upload(client, data=PDF_A, name="broker_a_grid.pdf", **form):
+    return client.post("/api/conferences", files={"file": (name, data, "application/pdf")}, data=form)
+
+
+def pdfs(settings):
+    return sorted(p.name for p in settings.uploads_dir.glob("*.pdf"))
+
+
+def company(detail, name):
+    return next(m for m in detail["meetings"] if m["company"] == name)
+
+
+def test_revised_upload_becomes_a_pending_revision(client, settings):
+    a = upload(client).json()
+    r = upload(client, PDF_A2, "broker_a_grid_v2.pdf")
+    assert r.status_code == 201
+    d = r.json()
+    assert d["id"] == a["id"] and d["revision_number"] == 1
+    rev = d["pending_revision"]
+    assert rev["number"] == 2 and rev["pdf_filename"] == "broker_a_grid_v2.pdf"
+    assert [c["kind"] for c in rev["changes"]] == ["changed", "changed", "changed", "removed", "added"]
+    assert rev["unchanged_count"] == 8
+    assert len(pdfs(settings)) == 2
+    assert client.get(f"/api/revisions/{rev['id']}/pdf").content == PDF_A2
+
+
+def test_mode_new_forces_a_new_conference(client):
+    a = upload(client).json()
+    assert upload(client, PDF_A2, "v2.pdf", mode="new").json()["id"] != a["id"]
+    assert upload(client, PDF_A2, "v2.pdf", mode="sideways").status_code == 400
+
+
+def test_apply_all_syncs_and_switches_the_pdf(client, settings):
+    a = upload(client).json()
+    client.post(f"/api/conferences/{a['id']}/confirm-ready", json={})
+    rev = upload(client, PDF_A2, "broker_a_grid_v2.pdf").json()["pending_revision"]
+    r = client.post(f"/api/revisions/{rev['id']}/apply", json={})
+    assert r.status_code == 200
+    d = r.json()
+    assert d["pending_revision"] is None and d["revision_number"] == 2
+    assert d["last_sync"]["failed"] == 0 and d["last_sync"]["ok"] == 6
+    cobalt = company(d, "Cobalt Freight Lines")
+    assert (cobalt["start"], cobalt["end"], cobalt["review_state"]) == ("14:30", "15:15", "sent")
+    assert company(d, "Atlas Rail Systems")["review_state"] == "sent"
+    assert client.get(f"/api/conferences/{a['id']}/pdf").content == PDF_A2
+    assert len(pdfs(settings)) == 1
+    assert client.post(f"/api/revisions/{rev['id']}/apply", json={}).status_code == 409
+
+
+def test_apply_some_changes(client):
+    a = upload(client).json()
+    rev = upload(client, PDF_A2, "v2.pdf").json()["pending_revision"]
+    d = client.post(f"/api/revisions/{rev['id']}/apply", json={"accepted": ["c1"]}).json()
+    assert company(d, "Cobalt Freight Lines")["start"] == "14:30"
+    assert company(d, "Meridian Rail Holdings")["room"] == "TBD"
+    assert client.post(f"/api/revisions/{rev['id']}/apply", json={"accepted": ["zz"]}).status_code == 409
+
+
+def test_discard_keeps_the_original(client, settings):
+    a = upload(client).json()
+    rev = upload(client, PDF_A2, "v2.pdf").json()["pending_revision"]
+    d = client.post(f"/api/revisions/{rev['id']}/discard").json()
+    assert d["pending_revision"] is None and d["revision_number"] == 1
+    assert len(pdfs(settings)) == 1
+    assert client.get(f"/api/conferences/{a['id']}/pdf").content == PDF_A
+
+
+def test_explicit_revision_upload(client):
+    a = upload(client).json()
+    r = client.post(f"/api/conferences/{a['id']}/revisions",
+                    files={"file": ("v2.pdf", PDF_A2, "application/pdf")})
+    assert r.status_code == 201 and r.json()["pending_revision"]["number"] == 2
+    bad = client.post(f"/api/conferences/{a['id']}/revisions", files={"file": ("x.pdf", b"", "application/pdf")})
+    assert bad.status_code == 400
+
+
+def test_revision_as_new_conference(client, settings):
+    a = upload(client).json()
+    rev = upload(client, PDF_A2, "v2.pdf").json()["pending_revision"]
+    r = client.post(f"/api/revisions/{rev['id']}/as-new-conference")
+    assert r.status_code == 201
+    new = r.json()
+    assert new["id"] != a["id"] and len(new["meetings"]) == 12
+    assert len(client.get("/api/conferences").json()) == 2
+    assert len(pdfs(settings)) == 2
+
+
+def test_delete_conference_removes_revision_pdfs(client, settings):
+    a = upload(client).json()
+    upload(client, PDF_A2, "v2.pdf")
+    assert client.delete(f"/api/conferences/{a['id']}").status_code == 204
+    assert pdfs(settings) == []
+    assert client.get("/api/revisions/1/pdf").status_code == 404
+```
+
+Note `test_apply_some_changes`'s last assertion. Once the first apply succeeds, the revision is no longer pending, so the second call is a 409 (Conflict) before the ids are checked. That is the intended order: the pending check comes first.
+
+Run: `cd backend && uv run pytest -q tests/test_revisions_api.py` → FAIL.
+
+- [ ] **Step 2: Implement.** Keep the routes thin; all logic stays in `revision_service`.
+  - Factor out the upload-validation and extraction code already in `upload()` into helpers that both upload routes use: `_read_pdf(file, settings) -> tuple[bytes, str]` and `_extract(request, data) -> tuple[ExtractionResult, str]` (the result and the extractor name).
+  - Keep the existing upload tests green.
+  - The `apply` route:
+    1. `conference, old_pdf = revision_service.apply_revision(session, rid, body.accepted if body else None, settings.default_meeting_minutes)`;
+    2. `_remove_upload(old_pdf, settings)`;
+    3. `summary = auto_sync(request, session, conference.id)`;
+    4. return the detail with `last_sync = summary`.
+
+- [ ] **Step 3: Run tests.** `cd backend && uv run pytest -q` → the whole suite passes.
+
+- [ ] **Step 4: Commit** with message `feat: revision endpoints and revision auto-detect on upload` and your Co-Authored-By trailer.
+
+### Task 11: Review page — "By colleague" verification surface, approval sends, revision review
+
+**Before writing UI code, read:**
+- `PRODUCT.md`;
+- spec §9 and §15;
+- the direction contract `.impeccable/surfaces/frontend-src-pages-reviewpage-tsx.md` (it now includes approval sends and the revision strip);
+- the chosen sketch `.impeccable/mocks/decision/assigned.html`;
+- the craft floor `/Users/xienanzheng/.claude/skills/impeccable/reference/craft-floor.md`.
+
+This page is the surface the direction contract describes, and the sketch is its first viewport. Build the real, responsive page, with every state the sketch skipped.
+
+**Behaviour changed after the original plan (spec §15):**
+- **No Send step.** Verifying (and every edit or delete) syncs calendars on the server in the same request. Each mutation response carries `last_sync: {ok, failed, message} | null`.
+- **Broker revisions.** A conference can carry `pending_revision`. CR reviews the changes and applies all or some; that is her approval, and calendars then sync.
+
+**Files:**
+- Modify: `frontend/src/api.ts`. Add these types and functions; don't rename existing exports.
+  - Types:
+    - `SyncSummary {ok, failed, message}`;
+    - `FieldChange {field, before, after}`, where `before` and `after` are `string | string[] | null`;
+    - `ProposedMeeting`;
+    - `RevisionChange {id, kind: "changed"|"added"|"removed", meeting_id, company, summary, fields, new}`;
+    - `Revision {id, number, pdf_filename, created_at, changes, unchanged_count}`;
+    - on `ConferenceDetail`: `last_sync: SyncSummary | null`, `pending_revision: Revision | null`, `revision_number: number`.
+  - Functions:
+    - `uploadConference(file, defaultIds, mode?: "auto" | "new")`, which sends the `mode` form field when given;
+    - `uploadRevision(cid, file)` → `POST /api/conferences/{cid}/revisions`;
+    - `applyRevision(rid, accepted: string[] | null)` → `POST /api/revisions/{rid}/apply` with body `{accepted}`;
+    - `discardRevision(rid)`;
+    - `revisionAsNewConference(rid)`;
+    - `revisionPdfUrl(rid, page?)`;
+    - `retrySync(cid)`, which is `sendNow(cid)`, kept as the Retry path.
+- Replace: `frontend/src/pages/ReviewPage.tsx`
+- Create:
+  - `frontend/src/components/review/ConferenceContext.tsx`
+  - `frontend/src/components/review/ColleagueRail.tsx`
+  - `frontend/src/components/review/StatusChips.tsx`
+  - `frontend/src/components/review/Timetable.tsx`
+  - `frontend/src/components/review/SourcePanel.tsx`
+  - `frontend/src/components/review/AttendeePicker.tsx`
+  - `frontend/src/components/review/AddMeetingRow.tsx`
+  - `frontend/src/components/review/SyncStatus.tsx`
+  - `frontend/src/components/review/RevisionStrip.tsx`
+  - `frontend/src/components/review/RevisionReview.tsx`
+  - `frontend/src/lib/useConference.ts`
+  - `frontend/src/lib/revision.ts`
+- Test: `frontend/src/lib/useConference.test.ts`, `frontend/src/lib/revision.test.ts`
+
+**Interfaces:**
+- Consumes: everything from Task 10:
+  - `api.ts` functions and types;
+  - `format.ts`;
+  - `review.ts`: `groupByDate`, `colleaguesIn`, `unmatchedNames`, `filterMeetings`, `statusCounts`, `stampFor`, `sharedWith`, `sendLabel`;
+  - components: `Shell`, `Stamp`/`StampMark`, `Button`, `ConfirmButton`, `ErrorNote`, `WoodlineMark`, `useConfig`, `errorMessage`.
+  - Read `frontend/src` first to see the exact exports.
+- Produces:
+  - the finished `/conferences/:id` route;
+  - `useConference(id)` → `{ detail, error, loading, apply(promise: Promise<ConferenceDetail>) }`, wrapping a pure `reduce`;
+  - `revision.ts` → `fieldLabel(field)`, `formatValue(field, value)`, `defaultAccepted(revision)` (all change ids), `toggleAccepted(set, id)`.
+
+- [ ] **Step 1: Write the failing tests**
+
+`frontend/src/lib/useConference.test.ts`:
 
 ```ts
-// frontend/src/lib/useConference.test.ts
 import { describe, expect, it } from "vitest";
 import { ApiError, type ConferenceDetail } from "../api";
 import { reduce, type State } from "./useConference";
@@ -5392,85 +6524,153 @@ describe("conference state", () => {
 });
 ```
 
-Run: `cd frontend && npx vitest run src/lib/useConference.test.ts` → FAIL (module missing). Implement `reduce` plus the `useConference` hook (`useReducer`, plus a fetch on mount and on id change), then run again → PASS.
+`frontend/src/lib/revision.test.ts`:
 
-- [ ] **Step 2: Build the page**
+```ts
+import { describe, expect, it } from "vitest";
+import type { Revision } from "../api";
+import { defaultAccepted, fieldLabel, formatValue, toggleAccepted } from "./revision";
 
-Layout (desktop ≥1281px), matching the sketch:
-- `Shell` with `context = <ConferenceContext/>`, which shows:
-  - the conference name, editable inline (click, input, Enter/blur saves via `patchConference`);
-  - below it, small: hotel · city · `dateRange` · `tzLabel`. The timezone is a button that opens a searchable `<select>` of `Intl.supportedValuesOf("timeZone")`; saving calls `patchConference({timezone})`.
-  - When the timezone is null, it reads "Set timezone" in red.
-- `actions` = totals ("63 meetings · 7 need attention · 41 verified · 12 sent", numbers in Figtree with tabular numerals; "need attention" in light red when > 0) and the beige **Send N to calendars** button (`sendLabel(counts)`, disabled at 0).
-- Below the bar, a three-column grid `250px | 1fr | 400px` with full height:
-  - **ColleagueRail** (cream-2, right border):
-    - the heading "Colleagues";
-    - an "All colleagues" row with the total;
-    - one row per `colleaguesIn(detail)` entry: an initials avatar (beige circle, navy initials), the name, a dot (red for block, amber for warn), and the count in Figtree;
-    - then a "Not on roster" heading and the `unmatchedNames` rows (avatar tinted red-bg).
-    - The selected row is a navy fill with white text and beige count.
-    - The rows are buttons; Up/Down arrows move between rows when the rail has focus.
-  - **Main column**:
-    - an `h1` in Figtree 700 28px navy with the selected colleague's name (or "All colleagues", or the unmatched name);
-    - a muted line, e.g. "14 meetings · 2 days · what lands in avery.kim@example.com" (for "All": "63 meetings across 6 colleagues");
-    - `StatusChips` (All, Needs attention, Ready, Verified, Sent with counts from `statusCounts` of the colleague-filtered list; selected chip navy-2 fill);
-    - the **Timetable**, then `AddMeetingRow`.
-    - With selection "all" or a colleague, a quiet "Verify all ready (N)" button sits beside the chips. It calls `confirmReady(cid, ids of ready meetings in the current filter)`.
-  - **Timetable**: one white table per `groupByDate` group, each under a day heading (Figtree 700, 13px, uppercase, letter-spacing 0.08em, blue).
-    - Columns: Time | Company | Room | Shared with | Status, always in this order (columns never move). Rows are sorted by start time.
-    - Time cell: `formatTime12(start)` bold Figtree tabular, then a small muted line "to {end}" + `localHint`, plus "(assumed)" when `end_assumed`.
-    - Company cell: the company bold with the ticker in blue Figtree 700 11px, then a muted line with executives · format label (1x1 / Group / Meal / Meeting).
-    - Room cell: the room, or a muted "—".
-    - Shared-with cell: `sharedWith(...)` joined, or "—". When `removed` is non-empty, an amber note "Removing from {names} on next send".
-    - Status cell: `<Stamp>`, plus amber warn-flag icons (lucide `TriangleAlert` 14px) with a tooltip of the messages.
-    - The row is a button-like `<tr>` (`tabIndex=0`, Enter/Space selects). The selected row gets a `#eef0f8` background, never a coloured left border. Hover gets a cream tint. Cancelled rows are muted with the company struck through.
-  - **SourcePanel** (white, left border) for the selected meeting (default: the first meeting needing attention, else the first row):
-    - a heading line: "Source · {pdf_filename} · page {n}";
-    - an `<iframe title="Source PDF page" src={pdfUrl(cid, source_page)}>` 330px tall, in a cream-2 frame;
-    - the editable fields in a 2-column grid: Date (`<input type=date>`), Start / End (`<input type=time>`), Room, Format (`<select>`), Company, Ticker, Executives (one per line in a textarea), Notes. Each saves on blur via `patchMeeting` and re-renders from the returned detail.
-    - `AttendeePicker`: the current colleagues as removable chips plus an "Add colleague" select of active roster colleagues; it saves `attendee_ids`.
-    - Flag notes: block flags in a red note box (`red-bg`, red text); warn flags in an amber note box. Each `unmatched_name` row has a **Dismiss** link that adds the name to `ignored_names`.
-    - When the meeting has other colleagues: an amber note, "Shared with N colleagues — verifying updates every calendar."
-    - The action row: primary **Verify meeting** (or **Unverify** for confirmed). A 409 shows the returned flags' messages inline. A quiet **Delete** (or **Cancel meeting** when it was sent) with the same "click again to confirm" pattern as Task 10.
-    - Per-attendee sync line: "Sent to Avery Kim · Changed — resend · Failed: {error}".
-  - **AddMeetingRow**: a collapsed "+ Add meeting" quiet button. It expands into an inline form (company, date, start, end, room, colleagues) that calls `addMeeting`, then selects the new meeting.
-  - **SendDialog**: a native `<dialog>` (protected focus is justified: it writes to colleagues' calendars).
-    - On open it calls `sendPreview`.
-    - It shows one row per colleague with counts: "3 new · 1 update · 1 removal". With nothing to send: "Everything is already on your colleagues' calendars."
-    - Buttons: **Send to calendars** (primary) and Close.
-    - After `sendNow`, results per colleague with failures listed by subject and error.
-    - For `sink = ics`: a download link per colleague ("avery-kim.ics") and **Download all (.zip)**, plus a one-line how-to: "Open each file in Outlook (or email it to the colleague) to add the meetings."
-    - For `sink = graph` when `config.graph.signed_in` is false: a "Sign in to Microsoft" step that calls `graphLogin()`, shows the code and the verification link, and polls `graphStatus()` every 3 seconds until signed in.
-- **Empty and edge states:**
-  - a conference with 0 meetings: "No meetings were found in this PDF. Add them by hand, or check the PDF." plus the add row;
-  - `skipped_items > 0` (from the upload response, kept in router state): a quiet note "Claude skipped N unreadable rows — check the PDF.";
-  - loading: skeleton rows (cream-2 bars), not a spinner;
-  - not found: "This conference doesn't exist." with a link back.
-- **Responsive:**
-  - ≤1280px: the SourcePanel becomes a right-side drawer (fixed, 420px, shadow `0 8px 24px rgba(24,41,88,.18)`) that opens when a row is selected and has a Close button.
-  - ≤900px: the rail becomes a `<select>` above the chips, and table columns collapse into a stacked cell (time on top, company, room · shared with, then the stamp).
-- **Motion:** 150–200ms ease-out on row selection tint, drawer slide and chip changes, and nothing else. Respect `prefers-reduced-motion`.
+const rev = { id: 7, number: 2, pdf_filename: "v2.pdf", created_at: "2026-11-03T10:00:00", unchanged_count: 8,
+  changes: [{ id: "c1" }, { id: "c2" }, { id: "c3" }] } as unknown as Revision;
+
+describe("revision helpers", () => {
+  it("accepts every change by default and toggles", () => {
+    const all = defaultAccepted(rev);
+    expect([...all]).toEqual(["c1", "c2", "c3"]);
+    const less = toggleAccepted(all, "c2");
+    expect([...less]).toEqual(["c1", "c3"]);
+    expect([...toggleAccepted(less, "c2")].sort()).toEqual(["c1", "c2", "c3"]);
+    expect([...all]).toEqual(["c1", "c2", "c3"]); // not mutated
+  });
+  it("labels and formats fields", () => {
+    expect(fieldLabel("firm_attendees")).toBe("Colleagues");
+    expect(fieldLabel("company_attendees")).toBe("Executives");
+    expect(fieldLabel("start")).toBe("Start");
+    expect(formatValue("start", "14:30")).toBe("2:30 PM");
+    expect(formatValue("date", "2026-11-11")).toBe("Wednesday, November 11");
+    expect(formatValue("firm_attendees", ["Taylor Brooks", "Jordan Lee"])).toBe("Taylor Brooks, Jordan Lee");
+    expect(formatValue("room", null)).toBe("—");
+    expect(formatValue("format", "one_on_one")).toBe("1x1");
+  });
+});
+```
+
+Run `cd frontend && npx vitest run src/lib/useConference.test.ts src/lib/revision.test.ts` → FAIL (the modules are missing). Implement, then run again → PASS.
+
+- [ ] **Step 2: Build the page** (desktop ≥1281px, matching the sketch)
+
+**Shell.**
+- `context` = `<ConferenceContext/>`:
+  - the conference name, editable inline (Enter or blur saves via `patchConference`);
+  - below it, small: hotel · city · `dateRange` · `tzLabel`, plus "Revision {revision_number}" when it's > 1.
+  - The timezone is a button that opens a searchable `<select>` of `Intl.supportedValuesOf("timeZone")`. A null timezone reads "Set timezone" in red.
+  - An **Upload revised PDF** quiet button opens a file picker (PDF only) and calls `uploadRevision`.
+- `actions` = the totals line (Figtree, tabular numerals), then `<SyncStatus/>`, then a beige **Verify all ready (N)** button.
+  - N counts ready meetings in the current filter. The button is hidden at 0.
+  - It calls `confirmReady(cid, ids)`.
+
+**SyncStatus.**
+- It derives "on calendars" from the attendees whose `sync === "sent"` across the conference, and shows the latest `last_sync.message` from the most recent mutation response (kept in page state) for ~6 s.
+- States:
+  - "On calendars ✓", with a lucide `CalendarCheck` icon (not a glyph), when `counts.pending_actions === 0` and nothing failed;
+  - "{failed} failed — Retry", red, with a **Retry** button calling `retrySync(cid)` and applying the returned detail by refetching;
+  - with `config.calendar_sink === "graph"` and not signed in: "Sign in to Microsoft", which runs `graphLogin()` and shows the code and link inline in a popover, polling `graphStatus()` every 3 s;
+  - with `config.calendar_sink === "ics"`: a "Calendar files" popover with one download link per colleague who has sent meetings (`/api/conferences/{id}/ics/{analyst_id}`), "Download all (.zip)", and one line: "Open each file in Outlook to add it to that colleague's calendar."
+- Popovers use the popover API or a positioned panel that escapes overflow. Not a modal.
+
+**RevisionStrip** (when `detail.pending_revision`). A full-width cream-2 strip under the bar:
+- "Revision {n} from {pdf_filename} — {K} changes", or "— no changes found";
+- buttons: **Review changes** (toggles RevisionReview), beige **Accept all** (`applyRevision(rid, null)`), quiet **Discard** (confirm-twice pattern);
+- a link, "Not the same conference? Keep it separate", which calls `revisionAsNewConference` and navigates to the new id.
+
+**RevisionReview** replaces the main column while open:
+- a heading, "What changed in revision {n}";
+- one row per change: a checkbox (all on by default, via `defaultAccepted`), a kind badge (Changed / New / Dropped), the company, and the summary;
+- for `changed`, a compact before → after table (`fieldLabel`, `formatValue`);
+- for `added`, the proposed meeting's time, room and colleagues;
+- for `removed`, "Will be removed from {names}'s calendars" when the meeting was sent.
+- Selecting a change shows the revision PDF at its page in the SourcePanel (`revisionPdfUrl(rid, change.new?.page)`).
+- Primary **Apply {k} changes**, which calls `applyRevision(rid, [...accepted])`. "{unchanged_count} meetings unchanged" in muted text.
+
+**ColleagueRail** (cream-2, 250px):
+- the heading "Colleagues", then "All colleagues" with the total;
+- `colleaguesIn` rows: an initials avatar, the name, a red/amber dot by worst flag, and the count;
+- a "Not on roster" heading and the `unmatchedNames` rows;
+- the selected row is filled navy;
+- rows are buttons, and Up/Down moves between them.
+
+**Main column:**
+- an `h1` (Figtree 700, 28px, navy) with the selected name, or "All colleagues";
+- a muted line, e.g. "14 meetings · 2 days · what lands in avery.kim@example.com";
+- `StatusChips` (All, Needs attention, Ready, Verified, Sent, with counts from `statusCounts` of the colleague-filtered list);
+- the **Timetable**, then `AddMeetingRow`.
+
+**Timetable:** one white table per `groupByDate` group, under a day heading (Figtree 700, 13px, uppercase, 0.08em letter-spacing, blue).
+- **Columns (fixed order):** Time | Company | Room | Shared with | Status, sorted by start.
+  - **Time:** `formatTime12(start)` bold, tabular. A small muted line "to {end}" + `localHint`, plus "(assumed)" when `end_assumed`.
+  - **Company:** bold, with the ticker in blue Figtree 700 11px. A muted line of executives · format.
+  - **Room:** the room, or "—".
+  - **Shared with:** `sharedWith`. When `removed` is non-empty: amber "Removing from {names}".
+  - **Status:** `<Stamp>` plus amber warn icons (lucide `TriangleAlert` 14px) with a tooltip showing the messages.
+- **Rows:**
+  - focusable (`tabIndex=0`, Enter/Space selects);
+  - the selected row is `#eef0f8`, never a coloured left border;
+  - hover is a cream tint;
+  - a cancelled row is muted and struck through.
+
+**SourcePanel** (white, 400px) for the selected meeting: the default is the first meeting needing attention, else the first row.
+- Heading: "Source · {pdf_filename} · page {n}".
+- The PDF: `<iframe title="Source PDF page" src={pdfUrl(cid, source_page)}>`, 330px tall, in a cream-2 frame.
+- Fields, saved on blur via `patchMeeting`; the page re-renders from the returned detail:
+  - Date;
+  - Start and End (`type=time`);
+  - Room;
+  - Format (select);
+  - Company;
+  - Ticker;
+  - Executives (a textarea, one per line);
+  - Notes;
+  - `AttendeePicker` (chips plus "Add colleague" from active roster colleagues).
+- Flags:
+  - block flags in a red note;
+  - warn flags in an amber note;
+  - "Dismiss" on `unmatched_name` (adds the name to `ignored_names`).
+- When the meeting is shared: an amber note, "Shared with N colleagues — verifying updates every calendar."
+- Actions:
+  - a primary **Verify meeting**, or **Unverify** for confirmed meetings. A 409 shows the flags' messages inline.
+  - **Delete**, or **Cancel meeting** when sent, with the confirm-twice pattern.
+  - A per-attendee sync line, e.g. "On Avery Kim's calendar · Changed — updating · Failed: {error}".
+
+**AddMeetingRow:** a collapsed "+ Add meeting" that expands into an inline form (company, date, start, end, room, colleagues) and calls `addMeeting`.
+
+**Empty and edge states:**
+- 0 meetings: "No meetings were found in this PDF. Add them by hand, or check the PDF.", plus the add row.
+- `skipped_items > 0` (from the upload response, passed in router state): "Claude skipped N unreadable rows — check the PDF."
+- Loading: skeleton rows.
+- Not found: "This conference doesn't exist." with a link back.
+- After any mutation, keep the current selection when the meeting still exists.
+
+**Responsive:**
+- ≤1280px: the SourcePanel becomes a right drawer (fixed, 420px, shadow `0 8px 24px rgba(24,41,88,.18)`) that opens on row selection, with Close.
+- ≤900px: the rail becomes a `<select>` above the chips, and table rows stack (time, company, room · shared with, stamp).
+
+**Motion:** 150–200ms ease-out on selection tint, drawer, chip changes and the revision strip's appearance; nothing else. Respect `prefers-reduced-motion`.
+
+**Conferences page touch:** after `uploadConference` returns, navigate to `/conferences/{id}`. When `pending_revision` is set, the review page opens with the RevisionStrip visible and RevisionReview open. Add a small "Upload as a new conference instead" checkbox to the upload card that sends `mode="new"`.
 
 - [ ] **Step 3: Verify**
 
-Run: `cd frontend && npx vitest run && npm run build`
-Expected: all tests pass and the build succeeds.
+Run: `cd frontend && npx vitest run && npm run build` → all tests pass; the build succeeds.
 
-Manual check against the backend with `MCS_EXTRACTOR=fake` and the seeded sample roster:
-1. Upload `samples/broker_b_by_company.pdf`.
-2. Riley Chen's rail dot is amber (double booking and fuzzy match).
-3. Fix a flag, verify a meeting, then send.
-4. Download Avery's `.ics`.
-5. Resize to 1200px (drawer) and 800px (select).
+Manual check, with the backend on `MCS_EXTRACTOR=fake`, a temp `MCS_DATA_DIR` and the seeded sample roster, using a background process and polling `/api/health`:
+1. Upload `samples/broker_a_grid.pdf` and verify a meeting. It shows "On calendars" and Avery's `.ics` downloads.
+2. Upload `samples/broker_a_grid_v2.pdf`. "Revision 2 — 5 changes" appears.
+3. Accept all. Cobalt moves to 2:30 PM and stays on calendars.
+4. Resize to 1200px (drawer) and 800px (select).
+5. Stop the server.
 
-- [ ] **Step 4: Commit**
-
-```bash
-git add frontend
-git commit -m "feat: By-colleague review page with source panel, verification and send
-
-Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
-```
+- [ ] **Step 4: Commit** with `feat: By-colleague review page with approval sends and revision review` and your trailer.
 
 ### Task 12: CLI, extraction scoring, README
 
@@ -5733,7 +6933,7 @@ Expected: all pass.
 Required sections, in this order, in plain language:
 1. **Title and one-paragraph summary**, plus this note, verbatim:
    > Unofficial prototype built by Nanzheng Xie for a calendar coordinator's workflow. Not an official Woodline Partners product; the Woodline look is used for an internal demo. All sample schedules, companies and people in `samples/` are fictional.
-2. **How it works:** upload → Claude extracts → review by colleague → verify → send (`.ics` or Microsoft Graph). Embed one screenshot later in Task 14 (`docs/screenshots/review.png`).
+2. **How it works:** upload → Claude extracts → review by colleague → verify. Verifying puts the meeting on the right colleagues' calendars automatically (Microsoft Graph via CR's delegate access; `.ics` files for CR to import until Graph is approved). A revised broker PDF is recognised automatically: CR reviews only what changed ("Revision 2 — 5 changes"), accepts, and calendars update. Embed one screenshot later in Task 14 (`docs/screenshots/review.png`).
 3. **Quick start (local):** `cd backend && uv sync`, `cd frontend && npm ci && npm run build`, `cd backend && uv run mcs seed-roster`, `uv run mcs serve`, then open http://127.0.0.1:8765.
 4. **Claude access:** a table of `MCS_EXTRACTOR` values (auto, claude-code, anthropic, foundry, fake) and what each needs. Storing the key in the Keychain:
    `security add-generic-password -a "$USER" -s meeting-calendar-sync.anthropic-api-key -w` (prompts for the key; never put keys in files). Switching to Microsoft Foundry: `MCS_EXTRACTOR=foundry`, `ANTHROPIC_FOUNDRY_RESOURCE`, and a key or Entra sign-in (`uv sync --extra foundry-entra`).
@@ -5744,7 +6944,6 @@ Required sections, in this order, in plain language:
 6. **Hosted demo (Cloudflare Containers):** what it is; that data resets when the container sleeps; the password gate. Deploy steps, mirroring Task 16: `cd deploy/cloudflare && npm ci`, `npx wrangler login`, `npx wrangler deploy`, then `npx wrangler secret put APP_PASSWORD` and `npx wrangler secret put ANTHROPIC_API_KEY`. Don't upload real broker schedules there unless your firm's data rules allow it.
 7. **Development:** `uv run pytest`, `npx vitest run`, `uv run python scripts/eval_extraction.py`, `uv run python scripts/make_sample_pdfs.py`; the folder layout in one short tree; the link to the spec and plan.
 8. **Limitations:**
-   - a revised broker PDF is uploaded as a new conference (no merge yet);
    - single user;
    - hosted data is ephemeral;
    - Graph is untested against a real tenant.
