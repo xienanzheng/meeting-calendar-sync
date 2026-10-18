@@ -127,6 +127,10 @@ def _active_ids(session: Session, analyst_ids: Sequence[int]) -> list[int]:
     return list(dict.fromkeys(analyst_ids))
 
 
+def check_attendee_ids(session: Session, ids: Sequence[int]) -> list[int]:
+    return _active_ids(session, ids)
+
+
 # ---------- roster ----------
 
 def list_analysts(session: Session) -> list[Analyst]:
