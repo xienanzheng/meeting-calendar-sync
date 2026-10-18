@@ -27,11 +27,20 @@ re-sending after an edit updating the existing entry instead of duplicating it.
 
 ## 2. Constraints
 
-- Runs locally on the user's Mac. Binds to `127.0.0.1` only. No multi-user auth.
+- Runs locally on the user's Mac, bound to `127.0.0.1`, no login. A hosted copy runs the same
+  Docker image on Cloudflare Containers (bound to `0.0.0.0` inside the container) behind a Worker
+  that requires a password; see §14.
 - All demo/test data is synthetic: fictional companies, fictional analysts with
-  `@example.com` emails, fictional brokers and hotels. No real firm names, schedules or
-  branding anywhere in the repo or UI. The UI is titled "Meeting Calendar Sync".
-- Secrets come from environment variables (optionally a git-ignored `.env`). `.env.example`
+  `@example.com` emails, fictional brokers and hotels. Real broker PDFs go only in the
+  git-ignored `private/samples/` folder and are never committed.
+- The UI uses the Woodline Partners theme taken from the public site (navy `#182958`,
+  cream `#f9f7ed`/`#f2efdb`, beige `#e3deb0`, mid blue `#475b90`; Figtree headings, Manrope
+  UI text, Libre Baskerville only in the WOODLINE wordmark; the Woodline mark). It is an
+  internal, local tool: never published or hosted. The product name in the UI is
+  "Meeting Calendar Sync".
+- Secrets come from environment variables (optionally a git-ignored `.env`) or, on macOS, the
+  login Keychain (`mcs/secrets.py`: env first, then `security find-generic-password`). The
+  user's Anthropic key is stored in the Keychain, not in any file. `.env.example`
   lists names only, never values. Access tokens (Graph) live in process memory only — never
   written to disk, logs, the database, or API responses.
 - The app never sends email or Teams messages. `.ics` files are produced for the coordinator
@@ -137,7 +146,9 @@ class Extractor(Protocol):
 class ExtractionError(Exception): ...   # message is shown to the coordinator
 ```
 
-`get_extractor(settings)` returns the provider named by `MCS_EXTRACTOR`.
+`get_extractor(settings)` returns the provider named by `MCS_EXTRACTOR`. When `MCS_EXTRACTOR` is
+unset (`auto`), it uses `anthropic` if an Anthropic API key is found (env or Keychain), otherwise
+`claude-code`.
 
 ### Result shape (also the JSON schema given to Claude)
 
@@ -164,12 +175,12 @@ not an error: the conference is created with zero meetings.
 
 | `MCS_EXTRACTOR` | How | Needs |
 |---|---|---|
-| `claude-code` (default) | Subprocess: `claude -p <prompt> --tools Read --allowedTools Read --output-format json --json-schema <schema> --no-session-persistence --model <model> --system-prompt <short prompt>`; stdin from `/dev/null`; cwd = a temp dir holding a copy of the PDF; env stripped of `CLAUDECODE` and every `CLAUDE_CODE_*` variable; reads `structured_output` from the JSON result. | `claude` CLI logged in |
-| `anthropic` | `anthropic.Anthropic()`; PDF sent as a base64 `document` block; forced tool use (`tools=[record_meetings]`, `tool_choice={"type":"tool","name":"record_meetings"}`) whose `input_schema` is the shared schema. | `ANTHROPIC_API_KEY` |
-| `foundry` | Same code as `anthropic` with `anthropic.AnthropicFoundry(resource=…, api_key=…)`; if no key, Entra auth via `azure.identity.DefaultAzureCredential` + `get_bearer_token_provider(cred, "https://ai.azure.com/.default")` (lazy import; clear error if `azure-identity` missing). | `ANTHROPIC_FOUNDRY_RESOURCE` + key or Entra login |
+| `claude-code` | Subprocess: `claude -p <prompt> --tools Read --allowedTools Read --output-format json --json-schema <schema> --no-session-persistence --model <model> --system-prompt <short prompt>`; stdin from `/dev/null`; cwd = a temp dir holding a copy of the PDF; env stripped of `CLAUDECODE` and every `CLAUDE_CODE_*` variable; reads `structured_output` from the JSON result. | `claude` CLI logged in |
+| `anthropic` | `anthropic.Anthropic()`; PDF sent as a base64 `document` block; forced tool use (`tools=[record_meetings]`, `tool_choice={"type":"tool","name":"record_meetings"}`) whose `input_schema` is the shared schema. | `ANTHROPIC_API_KEY` env var, else macOS Keychain item `meeting-calendar-sync.anthropic-api-key` |
+| `foundry` | Same code as `anthropic` with `anthropic.AnthropicFoundry(resource=…, api_key=…)`; if no key, Entra auth via `azure.identity.DefaultAzureCredential` + `get_bearer_token_provider(cred, "https://ai.azure.com/.default")` (lazy import; clear error if `azure-identity` missing). | `ANTHROPIC_FOUNDRY_RESOURCE` + key (`ANTHROPIC_FOUNDRY_API_KEY` env, else Keychain item `meeting-calendar-sync.foundry-api-key`) or Entra login |
 | `fake` | Returns the committed `samples/<name>.expected.json` for a PDF whose SHA-256 matches a `samples/*.pdf`; any other PDF raises `ExtractionError`. | nothing (tests, offline demo) |
 
-Model: `MCS_MODEL` overrides; defaults are `sonnet` for `claude-code` and `claude-sonnet-5`
+Model: `MCS_MODEL` overrides; defaults are `sonnet` for `claude-code` and `claude-sonnet-5-5`
 for `anthropic`/`foundry`. Timeout `MCS_EXTRACT_TIMEOUT` (default 240 s). Upload limit
 20 MB, PDF only (extension `.pdf` and `%PDF` magic bytes).
 
@@ -320,31 +331,51 @@ conflict → 409. All error bodies are JSON `{detail}`.
 
 ## 9. Frontend
 
-Vite + React + TypeScript + Tailwind. A small typed API client (`src/api.ts`). Pages:
+Vite + React + TypeScript + Tailwind. A small typed API client (`src/api.ts`). Design
+authority: `PRODUCT.md`, the review surface brief with its direction contract
+(`.impeccable/surfaces/frontend-src-pages-reviewpage-tsx.md`), and the chosen first-viewport
+sketch (`.impeccable/mocks/decision/assigned.html`, "By colleague"). The UI says **Verify**
+for the confirm action.
 
-1. **Conferences** (`/`): upload card (drag-and-drop or picker; optional "default attendees"
-   multi-select from the roster; Extract button with spinner and error display) and the list
-   of conferences (name, hotel, dates, meeting counts by status). Header shows the active
-   extractor and calendar sink as badges.
-2. **Review** (`/conferences/:id`):
-   - Header: editable conference name, hotel, city; timezone picker (IANA list from
-     `Intl.supportedValuesOf('timeZone')`); counts (meetings, blocked, warnings, confirmed,
-     sent/changed).
-   - Meetings grouped by date, sorted by start. Each row: confirm checkbox; start–end
-     (editable; when the coordinator's browser timezone differs from the hotel's, a muted hint
-     shows their local time, e.g. "5:00 AM your time"); company + ticker; room; format;
-     attendee chips (add/remove from roster); unmatched raw names with "dismiss"; flag chips
-     (red = block, amber = warn, message on hover); sync status; actions (view source page,
-     delete/cancel).
-   - Inline edits save on blur/enter via PATCH and refresh flags.
-   - "Add meeting", "Confirm all ready".
-   - Source panel: the PDF in an `<iframe src="/api/conferences/{id}/pdf#page={n}">`,
-     toggled per row.
-   - "Send to calendars": opens a preview (dry run) grouped by analyst with
-     create/update/cancel counts → Confirm → results per item; for `ics`, download links per
-     analyst and "Download all (.zip)"; for `graph`, a sign-in prompt if not signed in.
-3. **Roster** (`/roster`): table of analysts (name, email, aliases, active) with add, edit,
-   delete.
+**Shared shell.** 64px navy top bar: the Woodline mark and spaced WOODLINE wordmark,
+"Meeting Calendar Sync", then page context; nav links to Conferences and Roster; badges for
+the active extractor and calendar sink. Cream ground. No photos or hero banners.
+
+1. **Conferences** (`/`): an upload card (drag-and-drop or picker; optional "default
+   colleagues" multi-select from the roster; Extract button with a progress state
+   ("Reading the PDF with Claude — usually 30–60 s") and error display) and the list of
+   conferences (name, hotel, dates, counts by status).
+2. **Review** (`/conferences/:id`), the "By colleague" layout:
+   - Top bar context: conference name (editable), hotel and city, timezone (editable IANA
+     picker from `Intl.supportedValuesOf('timeZone')`), totals (meetings, need attention,
+     verified, sent), and a beige **Send N to calendars** button.
+   - **Colleague rail** (250px): "All colleagues", then each roster colleague who appears in
+     this conference with their meeting count and a red/amber dot when any of their meetings
+     has a block/warn flag, then "Not on roster" listing unmatched raw names (count each).
+   - **Main column**: the selected colleague's name (or "All colleagues"), a line saying what
+     lands where (e.g. "14 meetings · 2 days · what lands in avery.kim@example.com"), status
+     filter chips (All, Needs attention, Ready, Verified, Sent, with counts), then a timetable
+     grouped by date: Time (start, end, and a muted local-time hint when the viewer's
+     timezone differs from the hotel's, e.g. "5:00 AM PT") | Company + ticker + executives ·
+     format | Room | Shared with (the other colleagues) | Status stamp. Rows sort by start
+     time; columns never move. "Add meeting" sits under the table.
+   - **Status stamps**: DRAFT (muted), NEEDS TIME / NEEDS DATE / NEEDS COLLEAGUE / NEEDS
+     TIMEZONE (red, from block flags), VERIFIED (navy), SENT ✓ (green), CHANGED — RESEND
+     (amber), FAILED (red), CANCELLED (struck through). Warn flags show as amber notes.
+   - **Source panel** (400px) for the selected meeting: the PDF in an
+     `<iframe src="/api/conferences/{id}/pdf#page={n}">`; editable fields (date, start, end,
+     room, format, company, ticker, colleagues add/remove from roster, notes); flag notes with
+     their messages; "Dismiss" for unmatched names; a note when the meeting is shared with
+     other colleagues; buttons **Verify meeting** (or Unverify) and Delete/Cancel. Edits save
+     on blur/enter via PATCH and refresh flags.
+   - "Verify all ready" (verifies every draft without block flags in the current filter).
+   - **Send**: a dialog (dry run first) grouped by colleague with create/update/cancel counts →
+     Send → results per item; for `ics`, a download link per colleague and "Download all
+     (.zip)"; for `graph`, a sign-in prompt when not signed in.
+   - Responsive: at ≤1280px the source panel becomes a drawer over the main column; at
+     ≤900px the colleague rail becomes a select above the timetable.
+3. **Roster** (`/roster`): table of colleagues (name, email, aliases, active) with add, edit,
+   delete, in the same shell.
 
 ## 10. Error handling summary
 
@@ -407,10 +438,39 @@ contain one name not on the roster ("Chris Wong") to exercise `unmatched_name`.
 - **No revised-PDF merge in v1.** A revised broker PDF is uploaded as a new conference;
   editing within a conference and re-sending is idempotent. Merge/diff is the first follow-up.
 - **Synchronous extraction.** One request, 30–60 s, spinner. Fine for one local user.
+- **Auto extractor.** With no `MCS_EXTRACTOR`, use the Anthropic API when a key is available,
+  else local Claude Code. The user supplied an API key (stored in the Keychain).
 - **Forced tool use for API providers** rather than a structured-output parameter: works
   identically on Anthropic and Foundry.
 
 ## 13. Out of scope (v1)
 
-Revised-schedule merge; Outlook add-in; Power Automate; sending emails/invites; multi-user
-auth; cloud deployment; Teams; recurring events; attachments.
+Revised-schedule merge; Outlook add-in; Power Automate; sending emails/invites; per-user
+accounts; persistent hosted storage (D1/R2); Teams; recurring events; attachments.
+
+## 14. Repository and hosted deployment (added 2026-10-18)
+
+- **GitHub:** public repo `xienanzheng/meeting-calendar-sync` (the user's choice). Before every push,
+  a secret scan (`sk-ant-`, `gho_`/`ghp_`, `AKIA`, private keys) must come back clean, and
+  `private/`, `data/` and `.env` stay ignored. The README states it is an unofficial prototype.
+- **Container:** a multi-stage `Dockerfile` builds the frontend (Node 22) and runs the backend
+  (Python 3.13 + uv) with `mcs serve --host 0.0.0.0 --port 8080 --seed-sample-roster`. Hosted
+  settings:
+  - `MCS_EXTRACTOR=anthropic`;
+  - `MCS_USE_KEYCHAIN=false`;
+  - `MCS_DATA_DIR=/data`;
+  - `MCS_EPHEMERAL=true`;
+  - `ANTHROPIC_API_KEY` comes from a Cloudflare secret.
+- **Cloudflare:** `deploy/cloudflare/` holds `wrangler.jsonc` and a Worker built on
+  `@cloudflare/containers`. The Worker runs one container instance
+  (`getContainer(env.MCS, "main")`, `sleepAfter = "2h"`).
+  - It requires HTTP Basic auth against the `APP_PASSWORD` secret, compared in constant time.
+  - It fails closed: with no secret set, every request gets a 503.
+  - Cloudflare Access can be added in front later from the dashboard.
+- **Ephemeral data:** the container's disk resets on sleep or redeploy. `/api/config` reports
+  `ephemeral: true`, and the UI shows a quiet banner: "Hosted demo — data resets when the server
+  sleeps".
+- **Who does what:**
+  - The user runs `wrangler login` and turns on Workers Paid (billing).
+  - Secrets are set with `wrangler secret put`. The Anthropic key is piped from the Keychain and
+    never printed.

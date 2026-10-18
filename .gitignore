@@ -14,3 +14,10 @@ node_modules/
 frontend/dist/
 
 .DS_Store
+
+# real broker schedules and other private material (never commit)
+private/
+
+# impeccable scratch
+.impeccable/review/
+.impeccable/build/

@@ -1,0 +1,67 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Day board</title>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@500;600;700&family=Manrope:wght@400;500;600;700&family=Libre+Baskerville&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#182958;--navy2:#283968;--blue:#475b90;--cream:#f9f7ed;--cream2:#f2efdb;--beige:#e3deb0;--teal:#c5dfe5;--red:#d33141;--green:#48a942;--ink:#1c2340;--muted:#6b7190;--line:#e6e1c7;--h:88px}
+*{box-sizing:border-box;margin:0}body{width:1440px;height:900px;overflow:hidden;font-family:Manrope,sans-serif;color:var(--ink);background:var(--cream)}
+.top{height:64px;background:var(--navy);color:#fff;display:flex;align-items:center;padding:0 28px;gap:28px}
+.brand{display:flex;align-items:center;gap:12px}.word{font-family:'Libre Baskerville',serif;letter-spacing:4px;font-size:15px}
+.prod{font-family:Figtree;font-weight:600;font-size:15px;opacity:.85;padding-left:20px;border-left:1px solid rgba(255,255,255,.25)}
+.days{display:flex;gap:4px;margin-left:12px}.days span{padding:8px 14px;border-radius:6px;font-family:Figtree;font-weight:700;font-size:14px;color:rgba(255,255,255,.75)}.days .on{background:rgba(255,255,255,.14);color:#fff;box-shadow:inset 0 -3px 0 var(--beige)}
+.send{margin-left:auto;background:var(--beige);color:var(--navy);font-family:Figtree;font-weight:700;font-size:14px;padding:10px 18px;border-radius:6px}
+.wrap{display:grid;grid-template-columns:1fr 380px;height:836px}
+.board{position:relative;padding:0 0 0 72px;overflow:hidden}
+.lanes{display:grid;grid-template-columns:repeat(6,1fr);height:56px;border-bottom:1px solid var(--line);background:var(--cream2)}
+.lane-h{display:flex;align-items:center;gap:8px;padding:0 12px;font-weight:700;font-size:14px;border-left:1px solid var(--line)}
+.lane-h i{width:26px;height:26px;border-radius:50%;background:var(--beige);color:var(--navy);font-style:normal;font-family:Figtree;font-size:10px;display:grid;place-items:center}
+.lane-h small{margin-left:auto;color:var(--muted);font-family:Figtree}
+.grid{position:absolute;left:72px;right:0;top:56px;bottom:0;display:grid;grid-template-columns:repeat(6,1fr)}
+.grid div{border-left:1px solid var(--line);background:repeating-linear-gradient(to bottom,transparent 0,transparent calc(var(--h) - 1px),#ece7cf calc(var(--h) - 1px),#ece7cf var(--h))}
+.axis{position:absolute;left:0;top:56px;width:72px}.axis span{position:absolute;right:12px;font-family:Figtree;font-weight:600;font-size:12px;color:var(--muted);transform:translateY(-50%)}
+.blk{position:absolute;border-radius:6px;padding:7px 9px;background:#fff;border:1px solid #d9d3b4;border-left:4px solid var(--navy);font-size:12px;overflow:hidden}
+.blk b{display:block;font-family:Figtree;font-size:13px;color:var(--navy)}.blk span{color:var(--muted)}
+.blk.sent{border-left-color:var(--green)}.blk.draft{border-left-color:#b9b49a;background:#fdfcf6}.blk.clash{border-color:var(--red);border-left-color:var(--red);background:#fdf1f2}
+.blk.sel{box-shadow:0 0 0 2px var(--navy)}
+.empty{position:absolute;color:var(--muted);font-size:13px;font-weight:600;text-align:center}
+.side{background:#fff;border-left:1px solid var(--line);padding:22px}
+.side h2{font-family:Figtree;font-size:22px;color:var(--navy)}.side .tk{font-family:Figtree;font-weight:700;color:var(--blue);font-size:13px}
+.warn{margin:14px 0;background:#fdf1f2;border:1px solid #f3c7cc;color:var(--red);border-radius:6px;padding:10px 12px;font-size:13px;font-weight:600}
+.f{display:grid;grid-template-columns:1fr 1fr;gap:10px}.fld label{display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:4px}.fld div{border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-size:14px;font-weight:600}
+.pdf{margin:16px 0;height:250px;background:var(--cream2);border:1px solid var(--line);border-radius:6px;padding:16px}.sheet{background:#fff;height:100%;padding:12px;box-shadow:0 1px 3px rgba(0,0,0,.12)}.sheet .l{height:7px;background:#e4e4e4;margin:7px 0}.sheet .hl{height:15px;background:var(--beige);outline:2px solid var(--navy)}
+.act{display:flex;gap:10px}.btn{flex:1;text-align:center;padding:11px;border-radius:6px;font-family:Figtree;font-weight:700;font-size:14px}.p{background:var(--navy);color:#fff}.g{border:1px solid var(--line)}
+.legend{position:absolute;right:16px;bottom:14px;display:flex;gap:14px;font-size:12px;font-weight:600;color:var(--muted)}.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+</style></head><body>
+<div class="top">
+ <div class="brand"><svg width="40" height="15" viewBox="0 0 78 29"><path d="M38.64 4.04L0 28.65h77.2z" fill="#fff"/><path d="M0 0v22.6l38.64-18.56 38.58 18.56V0z" fill="#fff"/></svg><span class="word">WOODLINE</span></div>
+ <div class="prod">Meeting Calendar Sync · Industrials Conference 2026</div>
+ <div class="days"><span class="on">Tue Nov 10</span><span>Wed Nov 11</span></div>
+ <div class="send">Send 29 to calendars</div>
+</div>
+<div class="wrap">
+ <section class="board">
+  <div class="lanes"><div class="lane-h"><i>AK</i>Avery<small>3</small></div><div class="lane-h"><i>JL</i>Jordan<small>3</small></div><div class="lane-h"><i>RC</i>Riley<small>3</small></div><div class="lane-h"><i>SP</i>Sam<small>0</small></div><div class="lane-h"><i>MD</i>Morgan<small>1</small></div><div class="lane-h"><i>TB</i>Taylor<small>1</small></div></div>
+  <div class="grid"><div></div><div></div><div></div><div></div><div></div><div></div></div>
+  <div class="axis"><span style="top:0">8 AM</span><span style="top:88px">9</span><span style="top:176px">10</span><span style="top:264px">11</span><span style="top:352px">12 PM</span><span style="top:440px">1</span><span style="top:528px">2</span><span style="top:616px">3</span><span style="top:704px">4</span></div>
+  <!-- lane width = (1060-72)/6 ≈ 164.7px; lane n left = 72 + n*164.7 + 6 -->
+  <div class="blk sent" style="left:78px;width:152px;top:58px;height:64px"><b>NWRB · Northwind</b><span>Salon 4 · 8:00</span></div>
+  <div class="blk" style="left:78px;width:152px;top:234px;height:64px"><b>CBFL · Cobalt</b><span>Salon 4 · 10:00</span></div>
+  <div class="blk draft" style="left:78px;width:152px;top:410px;height:108px"><b>KSVC · Keystone</b><span>Lunch · Ballroom B</span></div>
+  <div class="blk sent" style="left:243px;width:152px;top:58px;height:64px"><b>NWRB · Northwind</b><span>Salon 4 · 8:00</span></div>
+  <div class="blk" style="left:243px;width:152px;top:146px;height:64px"><b>BRGS · Borealis</b><span>Suite 1201 · 9:00</span></div>
+  <div class="blk draft" style="left:243px;width:152px;top:410px;height:108px"><b>KSVC · Keystone</b><span>Lunch · Ballroom B</span></div>
+  <div class="blk clash" style="left:408px;width:100px;top:234px;height:64px"><b>CBFL</b><span>10:00–10:45</span></div>
+  <div class="blk clash sel" style="left:512px;width:56px;top:256px;height:66px"><b>ATRL</b><span>10:15</span></div>
+  <div class="blk draft" style="left:408px;width:152px;top:410px;height:108px"><b>KSVC · Keystone</b><span>Lunch · Ballroom B</span></div>
+  <div class="empty" style="left:572px;width:152px;top:330px">No meetings today</div>
+  <div class="blk draft" style="left:737px;width:152px;top:498px;height:64px"><b>MRHL · Meridian</b><span>Room TBD · 1:30</span></div>
+  <div class="blk" style="left:902px;width:152px;top:322px;height:64px"><b>HLAS · Halcyon</b><span>Group · Suite 1410</span></div>
+  <div class="legend"><span><i style="background:var(--green)"></i>Sent</span><span><i style="background:var(--navy)"></i>Verified</span><span><i style="background:#b9b49a"></i>Draft</span><span><i style="background:var(--red)"></i>Clash</span></div>
+ </section>
+ <aside class="side">
+  <div class="tk">ATRL · 1x1 · page 1</div><h2>Atlas Rail Systems</h2>
+  <div class="warn">Riley Chen is double-booked: Cobalt Freight Lines 10:00–10:45.</div>
+  <div class="f"><div class="fld"><label>Start</label><div>10:15 AM</div></div><div class="fld"><label>End</label><div>11:00 AM</div></div><div class="fld"><label>Room</label><div>Suite 1410</div></div><div class="fld"><label>Colleagues</label><div>Riley Chen</div></div></div>
+  <div class="pdf"><div class="sheet"><div class="l" style="width:55%;height:11px"></div><div class="l"></div><div class="l"></div><div class="l"></div><div class="l hl"></div><div class="l"></div><div class="l" style="width:70%"></div></div></div>
+  <div class="act"><div class="btn p">Verify meeting</div><div class="btn g">Reassign</div></div>
+ </aside>
+</div></body></html>

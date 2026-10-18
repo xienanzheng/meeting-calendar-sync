@@ -1,0 +1,83 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>By colleague</title>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@500;600;700&family=Manrope:wght@400;500;600;700&family=Libre+Baskerville&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#182958;--navy2:#283968;--blue:#475b90;--cream:#f9f7ed;--cream2:#f2efdb;--beige:#e3deb0;--red:#d33141;--green:#48a942;--amber:#b7791f;--ink:#1c2340;--muted:#6b7190;--line:#e6e1c7}
+*{box-sizing:border-box;margin:0}body{width:1440px;height:900px;overflow:hidden;font-family:Manrope,sans-serif;color:var(--ink);background:var(--cream)}
+.top{height:64px;background:var(--navy);color:#fff;display:flex;align-items:center;padding:0 28px;gap:28px}
+.brand{display:flex;align-items:center;gap:12px}.word{font-family:'Libre Baskerville',serif;letter-spacing:4px;font-size:15px}
+.prod{font-family:Figtree;font-weight:600;font-size:15px;opacity:.85;padding-left:20px;border-left:1px solid rgba(255,255,255,.25)}
+.conf{font-family:Figtree;font-weight:600;font-size:17px}.conf small{display:block;font-family:Manrope;font-weight:500;font-size:12px;opacity:.7}
+.stats{margin-left:auto;display:flex;gap:18px;font-size:13px}.stats b{font-family:Figtree;font-size:16px;margin-right:4px}
+.send{background:var(--beige);color:var(--navy);font-family:Figtree;font-weight:700;font-size:14px;padding:10px 18px;border-radius:6px}
+.wrap{display:grid;grid-template-columns:250px 1fr 400px;height:836px}
+.rail{background:var(--cream2);border-right:1px solid var(--line);padding:20px 14px}
+.rail h4{font-family:Figtree;font-size:12px;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin:0 10px 10px}
+.person{display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;font-weight:600;font-size:14px}
+.person .n{margin-left:auto;font-family:Figtree;color:var(--muted)}.person.on{background:var(--navy);color:#fff}.person.on .n{color:var(--beige)}
+.av{width:28px;height:28px;border-radius:50%;background:var(--beige);color:var(--navy);display:grid;place-items:center;font-family:Figtree;font-size:11px;font-weight:700}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--red)}.dot.a{background:var(--amber)}
+.main{padding:22px 28px;overflow:hidden}
+.mh{display:flex;align-items:baseline;gap:14px}.mh h1{font-family:Figtree;font-size:28px;font-weight:700;color:var(--navy)}.mh span{color:var(--muted);font-size:14px}
+.filters{display:flex;gap:8px;margin:14px 0 18px}.chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 12px;font-size:13px;font-weight:600}.chip.on{background:var(--navy2);color:#fff;border-color:var(--navy2)}
+.day{font-family:Figtree;font-weight:700;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:var(--blue);margin:14px 0 6px}
+table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+th{font-family:Figtree;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);text-align:left;padding:9px 12px;background:#fbfaf3;border-bottom:1px solid var(--line)}
+td{padding:11px 12px;border-bottom:1px solid #efebd6;font-size:14px;vertical-align:middle}
+.t{font-family:Figtree;font-weight:700;font-variant-numeric:tabular-nums;width:110px}.t small{display:block;font-family:Manrope;font-weight:500;color:var(--muted);font-size:12px}
+.co b{font-weight:700}.tk{font-family:Figtree;font-size:11px;font-weight:700;color:var(--blue);margin-left:6px}
+.with{color:var(--muted);font-size:13px}
+.stamp{display:inline-block;font-family:Figtree;font-weight:700;font-size:11px;letter-spacing:1.4px;padding:4px 8px;border:1.5px solid;border-radius:4px;transform:rotate(-3deg)}
+.v{color:var(--navy);border-color:var(--navy)}.s{color:var(--green);border-color:var(--green)}.x{color:var(--red);border-color:var(--red)}.d{color:var(--muted);border-color:#c9c4a8;transform:none}
+tr.sel td{background:#eef0f8}tr.sel td:first-child{box-shadow:inset 4px 0 0 var(--navy)}
+.side{background:#fff;border-left:1px solid var(--line);padding:20px 22px;overflow:hidden}
+.side h3{font-family:Figtree;font-size:12px;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted)}
+.pdf{margin:10px 0 16px;height:330px;background:var(--cream2);border:1px solid var(--line);border-radius:6px;padding:18px}
+.sheet{background:#fff;height:100%;box-shadow:0 1px 3px rgba(0,0,0,.12);padding:14px}
+.sheet .l{height:7px;background:#e4e4e4;margin:7px 0;border-radius:2px}.sheet .hl{background:rgba(227,222,176,.9);outline:2px solid var(--navy);height:16px}
+.f{display:grid;grid-template-columns:1fr 1fr;gap:10px}.fld label{display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:4px}
+.fld div{border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-size:14px;font-weight:600}
+.flag{margin-top:14px;background:#fdf1f2;border:1px solid #f3c7cc;color:var(--red);border-radius:6px;padding:10px 12px;font-size:13px;font-weight:600}
+.act{display:flex;gap:10px;margin-top:16px}.btn{flex:1;text-align:center;padding:11px;border-radius:6px;font-family:Figtree;font-weight:700;font-size:14px}.p{background:var(--navy);color:#fff}.g{border:1px solid var(--line)}
+</style></head><body>
+<div class="top">
+ <div class="brand"><svg width="40" height="15" viewBox="0 0 78 29"><path d="M38.64 4.04L0 28.65h77.2z" fill="#fff"/><path d="M0 0v22.6l38.64-18.56 38.58 18.56V0z" fill="#fff"/></svg><span class="word">WOODLINE</span></div>
+ <div class="prod">Meeting Calendar Sync</div>
+ <div class="conf">Industrials Conference 2026<small>The Example Grand Hotel, New York · Nov 10–11 · Eastern time</small></div>
+ <div class="stats"><span><b>63</b>meetings</span><span><b style="color:#f6a3ab">7</b>need attention</span><span><b>41</b>verified</span><span><b>12</b>sent</span></div>
+ <div class="send">Send 29 to calendars</div>
+</div>
+<div class="wrap">
+ <aside class="rail"><h4>Colleagues</h4>
+  <div class="person on"><span class="av">AK</span>Avery Kim<span class="dot"></span><span class="n">14</span></div>
+  <div class="person"><span class="av">JL</span>Jordan Lee<span class="n">12</span></div>
+  <div class="person"><span class="av">RC</span>Riley Chen<span class="dot a"></span><span class="n">11</span></div>
+  <div class="person"><span class="av">SP</span>Sam Patel<span class="n">9</span></div>
+  <div class="person"><span class="av">MD</span>Morgan Diaz<span class="n">8</span></div>
+  <div class="person"><span class="av">TB</span>Taylor Brooks<span class="n">9</span></div>
+  <h4 style="margin-top:22px">Not on roster</h4>
+  <div class="person"><span class="av" style="background:#f3c7cc">CW</span>Chris Wong<span class="n">1</span></div>
+ </aside>
+ <main class="main">
+  <div class="mh"><h1>Avery Kim</h1><span>14 meetings · 2 days · what lands in avery.kim@example.com</span></div>
+  <div class="filters"><span class="chip on">All 14</span><span class="chip">Needs attention 2</span><span class="chip">Ready 3</span><span class="chip">Verified 6</span><span class="chip">Sent 3</span></div>
+  <div class="day">Tuesday, November 10</div>
+  <table><tr><th>Time</th><th>Company</th><th>Room</th><th>Shared with</th><th>Status</th></tr>
+   <tr><td class="t">8:00 AM<small>to 8:45 · 5:00 AM PT</small></td><td class="co"><b>Northwind Robotics</b><span class="tk">NWRB</span><div class="with">Dana Shore, CFO · 1x1</div></td><td>Salon 4</td><td class="with">Jordan Lee</td><td><span class="stamp s">SENT ✓</span></td></tr>
+   <tr><td class="t">10:00 AM<small>to 10:45</small></td><td class="co"><b>Cobalt Freight Lines</b><span class="tk">CBFL</span><div class="with">Priya Nair, CFO · 1x1</div></td><td>Salon 4</td><td class="with">Riley Chen</td><td><span class="stamp v">VERIFIED</span></td></tr>
+   <tr class="sel"><td class="t">12:00 PM<small>to 1:15</small></td><td class="co"><b>Keystone Valve Corp</b><span class="tk">KSVC</span><div class="with">Lena Ortiz, CFO · Lunch</div></td><td>Grand Ballroom B</td><td class="with">Jordan Lee, Riley Chen</td><td><span class="stamp d">DRAFT</span></td></tr>
+   <tr><td class="t">—<small>time missing</small></td><td class="co"><b>Halcyon Aerostructures</b><span class="tk">HLAS</span><div class="with">Marcus Webb, CEO · Group</div></td><td>Suite 1410</td><td class="with">Taylor Brooks</td><td><span class="stamp x">NEEDS TIME</span></td></tr>
+  </table>
+  <div class="day">Wednesday, November 11</div>
+  <table><tr><th>Time</th><th>Company</th><th>Room</th><th>Shared with</th><th>Status</th></tr>
+   <tr><td class="t">11:00 AM<small>to 11:45</small></td><td class="co"><b>Summit Forge Industries</b><span class="tk">SMFI</span><div class="with">Ray Castillo, CEO · 1x1</div></td><td>Suite 1201</td><td class="with">—</td><td><span class="stamp v">VERIFIED</span></td></tr>
+   <tr><td class="t">2:00 PM<small>to 2:45</small></td><td class="co"><b>Lumen Sensor Works</b><span class="tk">LMSW</span><div class="with">Hana Mori, CFO · 1x1</div></td><td>Salon 4</td><td class="with">Jordan Lee</td><td><span class="stamp d">DRAFT</span></td></tr>
+  </table>
+ </main>
+ <aside class="side"><h3>Source · broker_a_grid.pdf · page 1</h3>
+  <div class="pdf"><div class="sheet"><div class="l" style="width:60%;height:12px"></div><div class="l" style="width:40%"></div><div class="l"></div><div class="l"></div><div class="l"></div><div class="l"></div><div class="l hl"></div><div class="l"></div><div class="l"></div><div class="l" style="width:70%"></div></div></div>
+  <div class="f"><div class="fld"><label>Start</label><div>12:00 PM</div></div><div class="fld"><label>End</label><div>1:15 PM</div></div><div class="fld"><label>Room</label><div>Grand Ballroom B</div></div><div class="fld"><label>Format</label><div>Lunch</div></div></div>
+  <div class="flag" style="background:#fbf3e4;border-color:#ecd3a4;color:#8a5a12">Shared with 2 colleagues — verifying updates all three calendars.</div>
+  <div class="act"><div class="btn p">Verify meeting</div><div class="btn g">Skip</div></div>
+ </aside>
+</div></body></html>
