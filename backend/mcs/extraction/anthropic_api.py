@@ -1,15 +1,14 @@
 """Extractor using the Anthropic Messages API — direct, or through Microsoft Foundry."""
 import base64
+import json
 from pathlib import Path
 
 import anthropic
 
 from mcs.config import Settings
 from mcs.extraction.schema import (
-    EXTRACTION_JSON_SCHEMA, EXTRACTION_PROMPT, SYSTEM_PROMPT, ExtractionError, ExtractionResult, parse_extraction,
+    EXTRACTION_OUTPUT_SCHEMA, EXTRACTION_PROMPT, SYSTEM_PROMPT, ExtractionError, ExtractionResult, parse_extraction,
 )
-
-TOOL_NAME = "record_meetings"
 
 
 class AnthropicExtractor:
@@ -26,9 +25,7 @@ class AnthropicExtractor:
                 model=self.model,
                 max_tokens=self.max_tokens,
                 system=SYSTEM_PROMPT,
-                tools=[{"name": TOOL_NAME, "description": "Record every meeting found in the schedule.",
-                        "input_schema": EXTRACTION_JSON_SCHEMA}],
-                tool_choice={"type": "tool", "name": TOOL_NAME},
+                output_config={"format": {"type": "json_schema", "schema": EXTRACTION_OUTPUT_SCHEMA}},
                 messages=[{"role": "user", "content": [
                     {"type": "document", "source": {"type": "base64", "media_type": "application/pdf", "data": data}},
                     {"type": "text", "text": EXTRACTION_PROMPT},
@@ -36,11 +33,16 @@ class AnthropicExtractor:
             )
         except anthropic.APIError as exc:
             raise ExtractionError(f"Claude API error: {exc.__class__.__name__}: {getattr(exc, 'message', exc)}") from None
-        block = next((b for b in response.content
-                      if getattr(b, "type", None) == "tool_use" and getattr(b, "name", None) == TOOL_NAME), None)
-        if block is None:
+        if getattr(response, "stop_reason", None) == "max_tokens":
+            raise ExtractionError("Claude ran out of room reading this PDF — try splitting it into smaller files.")
+        text = "".join(b.text for b in response.content if getattr(b, "type", None) == "text")
+        if not text:
             raise ExtractionError("Claude did not return the meetings in the expected format.")
-        return parse_extraction(block.input)
+        try:
+            payload = json.loads(text)
+        except json.JSONDecodeError:
+            raise ExtractionError("Claude returned unreadable output.") from None
+        return parse_extraction(payload)
 
 
 def make_anthropic_client(settings: Settings) -> anthropic.Anthropic:

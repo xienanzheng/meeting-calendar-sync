@@ -1,4 +1,5 @@
 """Shared extraction contract: result models, the JSON schema given to Claude, and the prompt."""
+import json
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
@@ -126,6 +127,50 @@ EXTRACTION_JSON_SCHEMA: dict = {
     },
     "required": ["meetings"],
 }
+
+
+def strict_json_schema(schema: dict) -> dict:
+    """Deep-copy transform to Anthropic structured-output's strict JSON Schema subset.
+
+    Every object gets ``additionalProperties: false`` and lists all its properties as
+    required. A property that was optional becomes nullable (``type`` grows a ``"null"``
+    member) if it's a plain ``string``/``integer``; an ``enum`` property keeps its single
+    string type (the API rejects a nullable enum); arrays stay arrays. A property that was
+    already required keeps its type untouched.
+    """
+    # A JSON round-trip (not copy.deepcopy) deliberately breaks object-identity aliasing:
+    # EXTRACTION_JSON_SCHEMA reuses the same literal dict (e.g. ``_STR``) for several
+    # properties, and deepcopy would preserve that sharing, so mutating one property's
+    # "type" in place would silently mutate every other property aliased to it.
+    return _strict_node(json.loads(json.dumps(schema)))
+
+
+def _strict_node(node: Any) -> Any:
+    if isinstance(node, dict):
+        if node.get("type") == "object" and "properties" in node:
+            required = set(node.get("required") or [])
+            props = node["properties"]
+            for name, prop_schema in props.items():
+                _strict_node(prop_schema)
+                if name in required:
+                    continue
+                if "enum" in prop_schema:
+                    continue
+                prop_type = prop_schema.get("type")
+                if prop_type in ("string", "integer"):
+                    prop_schema["type"] = [prop_type, "null"]
+            node["required"] = list(props.keys())
+            node["additionalProperties"] = False
+        else:
+            for value in node.values():
+                _strict_node(value)
+    elif isinstance(node, list):
+        for item in node:
+            _strict_node(item)
+    return node
+
+
+EXTRACTION_OUTPUT_SCHEMA: dict = strict_json_schema(EXTRACTION_JSON_SCHEMA)
 
 SYSTEM_PROMPT = (
     "You extract meeting schedules from broker conference PDFs into structured data. "
