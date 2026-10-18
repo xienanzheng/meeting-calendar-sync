@@ -108,6 +108,29 @@ def test_attendee_edit_keeps_existing_match_kinds(seeded):
     assert got == [("Avery Kim", "exact"), ("Sam Patel", "manual")]
 
 
+def test_inactive_colleague_already_on_a_meeting_does_not_block_attendee_edits(seeded):
+    conf = make_conf(seeded)
+    first = detail(seeded, conf).meetings[0]  # Northwind: Avery + Jordan
+    people = ids(seeded)
+    service.update_analyst(seeded, people["Jordan Lee"], AnalystUpdate(active=False))
+    service.update_meeting(seeded, first.id, MeetingUpdate(
+        attendee_ids=[people["Avery Kim"], people["Jordan Lee"], people["Sam Patel"]]), 45)  # the picker sends all
+    got = [(a.name, a.match) for a in by_company(detail(seeded, conf), "Northwind Robotics").attendees]
+    assert got == [("Avery Kim", "exact"), ("Sam Patel", "manual"), ("Jordan Lee", "exact")]
+
+
+def test_adding_a_new_inactive_colleague_is_rejected(seeded):
+    conf = make_conf(seeded)
+    first = detail(seeded, conf).meetings[0]  # Northwind: Avery + Jordan
+    people = ids(seeded)
+    service.update_analyst(seeded, people["Riley Chen"], AnalystUpdate(active=False))
+    with pytest.raises(service.InvalidInput, match="inactive"):
+        service.update_meeting(seeded, first.id, MeetingUpdate(
+            attendee_ids=[people["Avery Kim"], people["Jordan Lee"], people["Riley Chen"]]), 45)
+    with pytest.raises(service.InvalidInput):
+        service.update_meeting(seeded, first.id, MeetingUpdate(attendee_ids=[people["Avery Kim"], 9999]), 45)
+
+
 def test_time_edits_and_status_rule(seeded):
     conf = make_conf(seeded)
     first = detail(seeded, conf).meetings[0]

@@ -113,3 +113,16 @@ def test_network_error_is_reported_per_item():
     sink, _, _ = make_sink(boom)
     [outcome] = sink.apply(Conference(id=1), [action()])
     assert not outcome.ok and outcome.error.startswith("Could not reach Microsoft Graph")
+
+
+@pytest.mark.parametrize("response", [
+    httpx.Response(201, json={}),
+    httpx.Response(201, json={"id": ""}),
+    httpx.Response(201, json={"id": None}),
+    httpx.Response(201, json=["AAMk-1"]),
+    httpx.Response(201, content=b"<html>not json</html>"),
+])
+def test_created_event_without_an_id_is_a_failed_outcome(response):
+    sink, _, _ = make_sink(lambda r: response)
+    [outcome] = sink.apply(Conference(id=1), [action()])
+    assert (outcome.ok, outcome.external_id, outcome.error) == (False, None, "Graph error: no event id in the response")

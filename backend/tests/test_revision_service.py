@@ -236,6 +236,71 @@ def test_source_page_or_pdf_name_alone_plans_nothing(seeded):
     assert "Source: broker_a_grid.pdf, page 1" in record.content_json  # still what was actually sent
 
 
+def lumen_ids(s):
+    return {m.id for m in s.exec(select(Meeting).where(Meeting.company == "Lumen Sensor Works")).all()}
+
+
+def test_cancelled_meeting_is_not_new_in_the_next_revision(seeded):
+    conf = sent_conf_a(seeded)
+    lumen = meeting(seeded, "Lumen Sensor Works")  # sent to Jordan; unchanged in v2
+    assert service.delete_meeting(seeded, lumen.id) == "cancelled"
+    rev, _ = revise(seeded, conf)
+    out = rs.revision_out(seeded, rev)
+    assert [(c.id, c.kind, c.company) for c in out.changes] == [
+        ("c1", "changed", "Cobalt Freight Lines"), ("c2", "changed", "Halcyon Aerostructures"),
+        ("c3", "changed", "Meridian Rail Holdings"), ("c4", "removed", "Tidewater Pumps"),
+        ("c5", "added", "Atlas Rail Systems")]
+    assert out.unchanged_count == 7  # the cancelled meeting isn't counted as a live unchanged one
+    rs.apply_revision(seeded, rev.id, None, 45)
+    assert lumen_ids(seeded) == {lumen.id}  # not recreated
+    assert seeded.get(Meeting, lumen.id).status == "cancelled"
+    plan = service.plan_conference(seeded, conf.id, "ics")
+    assert [(a.kind, a.analyst_name) for a in plan if a.meeting_id in lumen_ids(seeded)] == [
+        ("cancel", "Jordan Lee")]  # only the cancellation CR already asked for; no create
+
+
+def test_change_ids_match_between_review_and_apply_with_a_cancelled_meeting(seeded):
+    conf = sent_conf_a(seeded)
+    service.delete_meeting(seeded, meeting(seeded, "Lumen Sensor Works").id)
+    rev, _ = revise(seeded, conf)
+    atlas = next(c.id for c in rs.revision_out(seeded, rev).changes if c.company == "Atlas Rail Systems")
+    rs.apply_revision(seeded, rev.id, [atlas], 45)
+    assert meeting(seeded, "Atlas Rail Systems").status == "confirmed"
+    assert meeting(seeded, "Cobalt Freight Lines").start_time.strftime("%H:%M") == "10:00"  # not accepted
+
+
+def test_cancelled_meeting_the_broker_drops_is_left_alone(seeded):
+    conf = sent_conf_a(seeded)
+    lumen = meeting(seeded, "Lumen Sensor Works")
+    service.delete_meeting(seeded, lumen.id)
+    service.send_conference(seeded, conf.id, IcsSink())  # the cancellation went out
+    revised = sample("broker_a_grid_v2")
+    rows = [m for m in revised.meetings if m.company != "Lumen Sensor Works"]
+    rev, _ = rs.create_revision(seeded, conf, revised.model_copy(update={"meetings": rows}),
+                                pdf_filename="v2.pdf", pdf_path="/tmp/v2.pdf", extractor="fake")
+    assert "Lumen Sensor Works" not in [c.company for c in rs.revision_out(seeded, rev).changes]
+    rs.apply_revision(seeded, rev.id, None, 45)
+    assert seeded.get(Meeting, lumen.id).status == "cancelled"
+    assert [r.state for r in seeded.exec(select(SyncRecord).where(SyncRecord.meeting_id == lumen.id)).all()] == [
+        "cancelled"]
+    assert planned_for(seeded, conf.id, "Lumen Sensor Works") == []
+
+
+def test_broker_can_put_back_a_meeting_a_revision_removed(seeded):
+    conf = conf_a(seeded)
+    tide = meeting(seeded, "Tidewater Pumps")
+    service.update_meeting(seeded, tide.id, MeetingUpdate(attendee_ids=[ids(seeded)["Jordan Lee"]],
+                                                          ignored_names=["Chris Wong"]), 45)
+    service.confirm_meeting(seeded, tide.id)
+    service.send_conference(seeded, conf.id, IcsSink())
+    rev, _ = revise(seeded, conf)
+    rs.apply_revision(seeded, rev.id, None, 45)
+    assert meeting(seeded, "Tidewater Pumps").status == "cancelled"
+    rev3, _ = revise(seeded, conf, "broker_a_grid")  # v3 lists Tidewater again
+    changes = [(c.kind, c.company) for c in rs.revision_out(seeded, rev3).changes]
+    assert ("added", "Tidewater Pumps") in changes
+
+
 def test_real_changes_update_every_colleague(seeded):
     conf = sent_conf_a(seeded)
     rev, _ = revise(seeded, conf)

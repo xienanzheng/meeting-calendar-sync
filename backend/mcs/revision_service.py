@@ -38,11 +38,16 @@ def _result(revision: Revision) -> ExtractionResult:
 
 
 def baseline_rows(session: Session, conference_id: int) -> list[tuple[int, ExtractedMeeting]]:
-    """Live meetings that came from the broker, with the broker's last applied version of each row."""
-    meetings = session.exec(select(Meeting).where(Meeting.conference_id == conference_id,
-                                                  Meeting.status != "cancelled", Meeting.source_json != "")
+    """Meetings that came from the broker, with the broker's last applied version of each row. Cancelled
+    ones are included so the broker's row for one pairs with it instead of looking new (see `_diff`)."""
+    meetings = session.exec(select(Meeting).where(Meeting.conference_id == conference_id, Meeting.source_json != "")
                             .order_by(Meeting.id)).all()
     return [(m.id, ExtractedMeeting.model_validate_json(m.source_json)) for m in meetings]
+
+
+def _cancelled_ids(session: Session, conference_id: int) -> set[int]:
+    return set(session.exec(select(Meeting.id).where(Meeting.conference_id == conference_id,
+                                                     Meeting.status == "cancelled")).all())
 
 
 def pending_revision(session: Session, conference_id: int) -> Revision | None:
@@ -111,7 +116,10 @@ def create_revision(session: Session, conference: Conference, result: Extraction
 
 
 def _diff(session: Session, revision: Revision, result: ExtractionResult) -> RevisionDiff:
-    return diff_revision(baseline_rows(session, revision.conference_id), result.meetings)
+    """The one diff both review and apply use, so change ids agree. A meeting CR cancelled is never offered
+    as a change: no "changed" or "removed" for it, and its broker row never counts as "added"."""
+    return diff_revision(baseline_rows(session, revision.conference_id), result.meetings,
+                         cancelled=_cancelled_ids(session, revision.conference_id))
 
 
 def _change_out(change: Change) -> ChangeOut:
@@ -136,6 +144,12 @@ def revision_out(session: Session, revision: Revision) -> RevisionOut:
 def _refresh_baseline(meeting: Meeting, row: ExtractedMeeting) -> None:
     meeting.source_json = row.model_dump_json()
     meeting.source_page = row.page
+
+
+def _drop_baseline(meeting: Meeting) -> None:
+    """The broker no longer lists this cancelled meeting, so it stops pairing: if the broker lists it again
+    later, that is a new meeting for CR to review."""
+    meeting.source_json = ""
 
 
 def _set_matched_attendees(session: Session, meeting: Meeting, names: Sequence[str], schedule_for: str | None,
@@ -279,12 +293,24 @@ def apply_revision(session: Session, revision_id: int, accepted: Sequence[str] |
             _apply_changed(session, session.get(Meeting, change.meeting_id), change, result.schedule_for, roster,
                            default_minutes)
         elif change.kind == "removed":
-            service.delete_meeting(session, change.meeting_id)
+            if service.delete_meeting(session, change.meeting_id) == "cancelled":
+                removed = session.get(Meeting, change.meeting_id)
+                _drop_baseline(removed)
+                session.add(removed)
         else:
             added_ids.append(_create_added(session, conference, result, change.new, roster, default_minutes).id)
     for meeting_id, row in diff.unchanged:
         meeting = session.get(Meeting, meeting_id)
         _refresh_baseline(meeting, row)
+        session.add(meeting)
+    for meeting_id, row in diff.cancelled:
+        # Silent: a cancelled meeting is never planned for (its pending cancels use what was sent), so this
+        # keeps later pairing accurate without touching its status or any calendar.
+        meeting = session.get(Meeting, meeting_id)
+        if row is None:
+            _drop_baseline(meeting)
+        else:
+            _refresh_baseline(meeting, row)
         session.add(meeting)
     if added_ids:
         service.confirm_ready(session, conference.id, added_ids)

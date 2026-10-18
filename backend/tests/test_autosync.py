@@ -148,3 +148,26 @@ def test_sync_failures_are_reported_not_raised(settings, tmp_path):
         d = r.json()
         assert d["last_sync"] == {"ok": 0, "failed": 2, "message": "2 calendar updates failed — use Retry."}
         assert {a["sync"] for a in company(d, "Northwind Robotics")["attendees"]} == {"failed"}
+
+
+class ExplodingSink:
+    name = "ics"
+
+    def apply(self, conference, actions):
+        raise RuntimeError("boom")
+
+
+def test_unexpected_sync_error_never_fails_the_approval(settings, tmp_path, caplog):
+    with make_client(settings, tmp_path, sink_factory=ExplodingSink) as c:
+        d = upload(c)
+        north = company(d, "Northwind Robotics")
+        with caplog.at_level("ERROR", logger="mcs.api.autosync"):
+            r = c.post(f"/api/meetings/{north['id']}/confirm")
+        assert r.status_code == 200
+        d = r.json()
+        assert company(d, "Northwind Robotics")["status"] == "confirmed"
+        assert d["last_sync"] == {"ok": 0, "failed": 0,
+                                  "message": "Calendar sync hit an unexpected error — use Retry."}
+        [record] = [rec for rec in caplog.records if rec.name == "mcs.api.autosync"]
+        assert record.exc_info and isinstance(record.exc_info[1], RuntimeError)
+        assert c.get(f"/api/conferences/{d['id']}").json()["counts"]["pending_actions"] == 2  # Retry still has work

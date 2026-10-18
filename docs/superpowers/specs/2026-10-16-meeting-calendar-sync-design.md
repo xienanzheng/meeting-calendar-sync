@@ -176,7 +176,7 @@ not an error: the conference is created with zero meetings.
 | `MCS_EXTRACTOR` | How | Needs |
 |---|---|---|
 | `claude-code` | Subprocess: `claude -p <prompt> --tools Read --allowedTools Read --output-format json --json-schema <schema> --no-session-persistence --model <model> --system-prompt <short prompt>`; stdin from `/dev/null`; cwd = a temp dir holding a copy of the PDF; env stripped of `CLAUDECODE` and every `CLAUDE_CODE_*` variable; reads `structured_output` from the JSON result. | `claude` CLI logged in |
-| `anthropic` | `anthropic.Anthropic()`; PDF sent as a base64 `document` block; forced tool use (`tools=[record_meetings]`, `tool_choice={"type":"tool","name":"record_meetings"}`) whose `input_schema` is the shared schema. | `ANTHROPIC_API_KEY` env var, else macOS Keychain item `meeting-calendar-sync.anthropic-api-key` |
+| `anthropic` | `anthropic.Anthropic()`; PDF sent as a base64 `document` block; structured outputs: `output_config={"format": {"type": "json_schema", "schema": …}}` with a strict JSON schema derived from the shared one (`strict_json_schema`: every field required, optional strings/integers nullable, `additionalProperties: false` on every object; an optional enum keeps its plain type, as the API rejects a nullable enum). The reply is read from the response's text block and parsed as JSON. This replaced forced tool use (`tool_choice: tool`) on 2026-10-18 because current models reject it. | `ANTHROPIC_API_KEY` env var, else macOS Keychain item `meeting-calendar-sync.anthropic-api-key` |
 | `foundry` | Same code as `anthropic` with `anthropic.AnthropicFoundry(resource=…, api_key=…)`; if no key, Entra auth via `azure.identity.DefaultAzureCredential` + `get_bearer_token_provider(cred, "https://ai.azure.com/.default")` (lazy import; clear error if `azure-identity` missing). | `ANTHROPIC_FOUNDRY_RESOURCE` + key (`ANTHROPIC_FOUNDRY_API_KEY` env, else Keychain item `meeting-calendar-sync.foundry-api-key`) or Entra login |
 | `fake` | Returns the committed `samples/<name>.expected.json` for a PDF whose SHA-256 matches a `samples/*.pdf`; any other PDF raises `ExtractionError`. | nothing (tests, offline demo) |
 
@@ -399,7 +399,8 @@ the active extractor and calendar sink. Cream ground. No photos or hero banners.
     errors);
   - extractors: claude-code via an injected runner (and a fake `claude` script for the
     subprocess wiring: env stripping, flags, timeout, error JSON); anthropic/foundry via a
-    fake client asserting the request shape (document block, forced tool); fake extractor
+    fake client asserting the request shape (document block, `output_config` strict JSON schema, no
+    `tools`/`tool_choice`) and reading the reply from the text block; fake extractor
     hashing; factory selection;
   - API end-to-end with `TestClient`, a temp data dir and the fake extractor: upload sample →
     review payload → edit → confirm → send dry run → send (ics) → download → edit → re-send
@@ -440,8 +441,9 @@ contain one name not on the roster ("Chris Wong") to exercise `unmatched_name`.
 - **Synchronous extraction.** One request, 30–60 s, spinner. Fine for one local user.
 - **Auto extractor.** With no `MCS_EXTRACTOR`, use the Anthropic API when a key is available,
   else local Claude Code. The user supplied an API key (stored in the Keychain).
-- **Forced tool use for API providers** rather than a structured-output parameter: works
-  identically on Anthropic and Foundry.
+- **Structured outputs for API providers** (`output_config` with a strict JSON schema; the reply
+  is read from the text block). Works identically on Anthropic and Foundry. This replaced the
+  original forced-tool-use ruling on 2026-10-18 because current models reject `tool_choice: tool`.
 
 ## 13. Out of scope (v1)
 

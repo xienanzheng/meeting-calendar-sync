@@ -54,7 +54,11 @@ class GraphSink:
                         "transactionId": f"mcs-{action.meeting_id}-{action.analyst_id}-{action.sequence}"}
                 resp = self._send("POST", f"/users/{user}/calendar/events", headers, body)
                 if resp.status_code in (200, 201):
-                    return SyncOutcome(action, ok=True, external_id=resp.json()["id"])
+                    event_id = self._event_id(resp)
+                    if event_id is None:
+                        return SyncOutcome(action, ok=False, external_id=action.external_id,
+                                           error="Graph error: no event id in the response")
+                    return SyncOutcome(action, ok=True, external_id=event_id)
             elif action.kind == "update":
                 resp = self._send("PATCH", f"/users/{user}/events/{quote(action.external_id, safe='')}",
                                   headers, event_payload(action.content))
@@ -79,6 +83,16 @@ class GraphSink:
             self.sleep(min(wait, MAX_RETRY_AFTER))
             resp = self.client.request(method, path, headers=headers, json=body)
         return resp
+
+    @staticmethod
+    def _event_id(resp: httpx.Response) -> str | None:
+        """The created event's id, or None when the body isn't JSON or has no usable id."""
+        try:
+            data = resp.json()
+        except ValueError:
+            return None
+        event_id = data.get("id") if isinstance(data, dict) else None
+        return event_id if isinstance(event_id, str) and event_id else None
 
     @staticmethod
     def _error(resp: httpx.Response, action: SyncAction) -> str:

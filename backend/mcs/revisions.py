@@ -3,7 +3,7 @@ import datetime as dt
 from collections import Counter
 from dataclasses import dataclass
 from difflib import SequenceMatcher
-from typing import Any, Callable, Sequence
+from typing import Any, Callable, Collection, Sequence
 
 from mcs.extraction.schema import ExtractedMeeting
 from mcs.normalize import parse_date, parse_time
@@ -36,6 +36,10 @@ class Change:
 class RevisionDiff:
     changes: tuple[Change, ...]
     unchanged: tuple[tuple[int, ExtractedMeeting], ...]
+    # Meetings CR cancelled, with the broker's row for each now (None: the broker dropped it too). CR's
+    # cancellation wins, so these are never offered as changes; they take part in pairing only so the
+    # broker's row for one is never mistaken for a new meeting.
+    cancelled: tuple[tuple[int, ExtractedMeeting | None], ...] = ()
 
 
 def _norm(value: Any):
@@ -123,7 +127,10 @@ def _describe_changed(before: ExtractedMeeting, after: ExtractedMeeting, fields:
     return f"{after.company}: " + "; ".join(parts)
 
 
-def diff_revision(baseline: Sequence[tuple[int, ExtractedMeeting]], new_rows: Sequence[ExtractedMeeting]) -> RevisionDiff:
+def diff_revision(baseline: Sequence[tuple[int, ExtractedMeeting]], new_rows: Sequence[ExtractedMeeting],
+                  cancelled: Collection[int] = ()) -> RevisionDiff:
+    """`cancelled` names baseline meetings CR cancelled: they're paired like any other, then set aside
+    before change ids are numbered, so the ids stay the same wherever the diff is used."""
     old, new = list(baseline), list(new_rows)
     pairs = []
     for key in (lambda m: (parse_date(m.date), _company(m)), _company):
@@ -131,6 +138,11 @@ def diff_revision(baseline: Sequence[tuple[int, ExtractedMeeting]], new_rows: Se
         pairs += found
     found, old, new = _pair_fuzzy(old, new)
     pairs += found
+
+    skip = set(cancelled)
+    kept = [(mid, after) for mid, _, after in pairs if mid in skip] + [(mid, None) for mid, _ in old if mid in skip]
+    pairs = [p for p in pairs if p[0] not in skip]
+    old = [o for o in old if o[0] not in skip]
 
     entries, unchanged = [], []
     for mid, before, after in pairs:
@@ -150,4 +162,4 @@ def diff_revision(baseline: Sequence[tuple[int, ExtractedMeeting]], new_rows: Se
                                                summary=f"New: {after.company}{_when(after)}", new=after)))
     entries.sort(key=lambda e: e[0])
     changes = tuple(Change(id=f"c{i}", **entry) for i, (_, entry) in enumerate(entries, start=1))
-    return RevisionDiff(changes=changes, unchanged=tuple(unchanged))
+    return RevisionDiff(changes=changes, unchanged=tuple(unchanged), cancelled=tuple(kept))

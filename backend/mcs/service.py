@@ -296,9 +296,12 @@ def get_meeting(session: Session, meeting_id: int) -> Meeting:
 
 
 def _set_attendees(session: Session, meeting: Meeting, analyst_ids: Sequence[int]) -> None:
-    wanted = _active_ids(session, analyst_ids)
+    """Only colleagues being added must be active: the picker sends the full list, so someone deactivated
+    while already on the meeting stays on it as they are."""
     existing = {row.analyst_id: row for row in
                 session.exec(select(MeetingAttendee).where(MeetingAttendee.meeting_id == meeting.id)).all()}
+    wanted = list(dict.fromkeys(analyst_ids))
+    _active_ids(session, [aid for aid in wanted if aid not in existing])
     for aid, row in existing.items():
         if aid not in wanted:
             session.delete(row)

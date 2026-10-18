@@ -256,9 +256,10 @@ function UploadCard() {
       </div>
 
       {extracting && startedAt !== null && (
-        <div role="status" className="mt-5 rounded-md border border-line bg-cream px-4 py-3">
+        <div className="mt-5 rounded-md border border-line bg-cream px-4 py-3">
           <div className="flex items-center justify-between gap-4 text-sm font-semibold text-ink">
-            <span>{readingWith}</span>
+            {/* Only the label is live: the clock ticks every second and would be re-announced each time. */}
+            <span role="status">{readingWith}</span>
             <ElapsedClock since={startedAt} />
           </div>
           <div className="mt-2.5 h-1 overflow-hidden rounded-full bg-beige" aria-hidden="true">

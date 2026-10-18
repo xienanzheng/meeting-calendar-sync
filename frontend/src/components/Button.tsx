@@ -69,15 +69,16 @@ export function Button({
 
 export interface ConfirmButtonProps extends Omit<ButtonProps, "onClick" | "variant" | "children"> {
   onConfirm: () => void;
+  /** The action, e.g. "Delete" or "Cancel meeting"; also read as "Press again … to <label>" once armed. */
   label?: string;
   confirmLabel?: string;
-  /** What is being deleted, read to screen readers after the label (e.g. the conference name). */
+  /** What the action applies to, read to screen readers after the label (e.g. the conference name). */
   subject?: string;
 }
 
 /**
- * A two-step destructive button with no modal: the first press turns it into "Delete for good?"
- * for four seconds; a second press within that time confirms.
+ * A two-step destructive button with no modal: the first press turns it into its confirm label
+ * ("Delete for good?" by default) for four seconds; a second press within that time confirms.
  */
 export function ConfirmButton({
   onConfirm,
@@ -119,7 +120,7 @@ export function ConfirmButton({
         {subject && <span className="sr-only"> {subject}</span>}
       </Button>
       <span className="sr-only" aria-live="polite">
-        {armed ? "Press again within 4 seconds to delete." : ""}
+        {armed ? `Press again within 4 seconds to ${label.toLowerCase()}.` : ""}
       </span>
     </>
   );
