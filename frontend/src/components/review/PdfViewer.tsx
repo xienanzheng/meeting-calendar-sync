@@ -10,7 +10,7 @@ import {
 // The legacy build carries polyfills for the newest JS the modern build assumes; Vite bundles the worker file.
 import workerUrl from "pdfjs-dist/legacy/build/pdf.worker.min.mjs?url";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { bodyTextSize, findRowBox, type PdfTextItem, type RowBox } from "../../lib/pdfRow";
+import { bodyTextSize, findRowBox, rowScrollTarget, type PdfTextItem, type RowBox } from "../../lib/pdfRow";
 
 GlobalWorkerOptions.workerSrc = workerUrl;
 
@@ -64,7 +64,7 @@ function ToolButton({
 
 /**
  * The source PDF drawn with pdf.js: one page on a canvas (sharp on high-DPI screens), opened at a
- * readable zoom with the meeting's printed row highlighted and centred in the frame, and its own
+ * readable zoom with the meeting's printed row highlighted and brought into view (`rowScrollTarget`), and its own
  * page, zoom, "Fit width" and open-in-a-new-tab controls. `url` is the file itself (versioned, no
  * #page); `openUrl` is what "Open the PDF in a new tab" opens.
  */
@@ -232,10 +232,14 @@ export default function PdfViewer({
       frame.scrollTo({ top: 0, left: 0 });
       return;
     }
-    // The row sits centred in the frame, both ways (as far as the page's edges allow).
-    const top = hitTop + FRAME_PAD - (frame.clientHeight - hitHeight) / 2;
-    const left = hitLeft + FRAME_PAD - (frame.clientWidth - hitWidth) / 2;
-    frame.scrollTo({ top: Math.max(0, top), left: Math.max(0, left) });
+    // Centred vertically; across, centred if it fits, else from its left edge (a grid's Time column).
+    frame.scrollTo(
+      rowScrollTarget(
+        { left: hitLeft, top: hitTop, width: hitWidth, height: hitHeight },
+        { width: frame.clientWidth, height: frame.clientHeight },
+        FRAME_PAD,
+      ),
+    );
   }, [drawnKey, hitLeft, hitTop, hitWidth, hitHeight]);
 
   const loading = !failed && !drawn;

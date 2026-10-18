@@ -153,3 +153,27 @@ export function bodyTextSize(items: PdfTextItem[]): number {
     .sort((a, b) => a - b);
   return sizes.length ? sizes[Math.floor((sizes.length - 1) / 2)] : 10;
 }
+
+/** A highlighted row on the drawn page, in CSS px from the page's top-left. */
+export interface RowRect {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
+/**
+ * Where to scroll the PDF frame (scrollLeft/scrollTop) to show a highlighted row: centred vertically;
+ * across, centred when the row fits, else aligned to its left edge, where grids print the Time column.
+ * `pad` is the frame's padding around the page. Never past the page's top-left.
+ */
+export function rowScrollTarget(
+  row: RowRect,
+  frame: { width: number; height: number },
+  pad: number,
+): { left: number; top: number } {
+  const top = row.top + pad - (frame.height - row.height) / 2;
+  const fits = row.width + pad * 2 <= frame.width;
+  const left = fits ? row.left + pad - (frame.width - row.width) / 2 : row.left;
+  return { left: Math.max(0, left), top: Math.max(0, top) };
+}

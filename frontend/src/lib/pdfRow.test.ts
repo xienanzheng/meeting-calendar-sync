@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bodyTextSize, findRowBox as find, type PdfTextItem, type RowBox } from "./pdfRow";
+import { bodyTextSize, findRowBox as find, rowScrollTarget, type PdfTextItem, type RowBox } from "./pdfRow";
 
 /** The box rounded to 0.01pt, so float noise in the union doesn't fail an exact comparison. */
 function findRowBox(items: PdfTextItem[], company: string, ticker: string | null): RowBox | null {
@@ -83,5 +83,20 @@ describe("bodyTextSize", () => {
   it("ignores blank items and falls back to 10pt for a page without text", () => {
     expect(bodyTextSize([item(" ", 0, 0, 3, 40), item("Lunch", 0, 0, 20, 9)])).toBe(9);
     expect(bodyTextSize([])).toBe(10);
+  });
+});
+
+describe("rowScrollTarget", () => {
+  const frame = { width: 340, height: 330 };
+  const pad = 8; // the frame's padding around the page
+
+  it("aligns a row wider than the frame to its left edge (a grid's Time column), centred vertically", () => {
+    const gridRow = { left: 52, top: 400, width: 700, height: 14 };
+    expect(rowScrollTarget(gridRow, frame, pad)).toEqual({ left: 52, top: 250 });
+  });
+
+  it("centres a row that fits, both ways, never past the page's top-left", () => {
+    expect(rowScrollTarget({ left: 500, top: 300, width: 100, height: 16 }, frame, pad)).toEqual({ left: 388, top: 151 });
+    expect(rowScrollTarget({ left: 47, top: 40, width: 153, height: 16 }, frame, pad)).toEqual({ left: 0, top: 0 });
   });
 });
