@@ -27,12 +27,16 @@ again if the broker sends a revised PDF.
 
 ![Review screen](docs/screenshots/review.png)
 
+![Revision review](docs/screenshots/revision.png)
+
 ## Quick start (local)
 
 ```bash
-cd backend && uv sync
-cd frontend && npm ci && npm run build
-cd backend && uv run mcs seed-roster
+# from the repository root
+(cd frontend && npm ci && npm run build)
+cd backend
+uv sync
+uv run mcs seed-roster
 uv run mcs serve
 ```
 

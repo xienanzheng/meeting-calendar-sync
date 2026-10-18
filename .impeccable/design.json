@@ -1,0 +1,696 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-18T20:40:44+00:00",
+  "title": "Design System: Meeting Calendar Sync",
+  "extensions": {
+    "colorMeta": {
+      "navy": {
+        "role": "primary",
+        "displayName": "Woodline Navy",
+        "canonical": "#182958",
+        "tonalRamp": [
+          "#030a37",
+          "#142553",
+          "#2c4071",
+          "#4c6195",
+          "#6d85bc",
+          "#91aae3",
+          "#bed1fc",
+          "#e7effe"
+        ]
+      },
+      "navy-2": {
+        "role": "primary",
+        "displayName": "Lifted Navy",
+        "canonical": "#283968",
+        "tonalRamp": [
+          "#040b36",
+          "#162552",
+          "#2e406f",
+          "#4d6194",
+          "#6f85ba",
+          "#93aae1",
+          "#bdd0ff",
+          "#e8eefe"
+        ]
+      },
+      "navy-3": {
+        "role": "primary",
+        "displayName": "Pressed Navy",
+        "canonical": "#101d42",
+        "tonalRamp": [
+          "#040d31",
+          "#18264c",
+          "#304169",
+          "#50628d",
+          "#7285b2",
+          "#96aad9",
+          "#bdd1fd",
+          "#e7effe"
+        ]
+      },
+      "blue": {
+        "role": "primary",
+        "displayName": "Ledger Blue",
+        "canonical": "#475b90",
+        "tonalRamp": [
+          "#030a38",
+          "#152454",
+          "#2d3f72",
+          "#4d6196",
+          "#6e84bd",
+          "#92a9e4",
+          "#bed0fd",
+          "#e8eefe"
+        ]
+      },
+      "beige": {
+        "role": "secondary",
+        "displayName": "Woodline Beige",
+        "canonical": "#e3deb0",
+        "tonalRamp": [
+          "#161200",
+          "#2f2a00",
+          "#49431a",
+          "#6a653b",
+          "#8d885d",
+          "#b2ad80",
+          "#d8d3a6",
+          "#f6f1c2"
+        ]
+      },
+      "beige-2": {
+        "role": "secondary",
+        "displayName": "Beige Hover",
+        "canonical": "#ece8c4",
+        "tonalRamp": [
+          "#161200",
+          "#2e2a0b",
+          "#474325",
+          "#686545",
+          "#8c8867",
+          "#b0ac8a",
+          "#d7d3af",
+          "#f4f0cc"
+        ]
+      },
+      "beige-3": {
+        "role": "secondary",
+        "displayName": "Beige Pressed",
+        "canonical": "#d6d09a",
+        "tonalRamp": [
+          "#161200",
+          "#2e2a01",
+          "#4a430e",
+          "#6b6532",
+          "#8e8855",
+          "#b3ad78",
+          "#d9d39d",
+          "#f7f1ba"
+        ]
+      },
+      "cream": {
+        "role": "neutral",
+        "displayName": "Ledger Cream",
+        "canonical": "#f9f7ed",
+        "tonalRamp": [
+          "#13120b",
+          "#2b2922",
+          "#44433b",
+          "#65635b",
+          "#88867d",
+          "#adaba2",
+          "#d3d1c7",
+          "#f1efe5"
+        ]
+      },
+      "cream-2": {
+        "role": "neutral",
+        "displayName": "Rail Cream",
+        "canonical": "#f2efdb",
+        "tonalRamp": [
+          "#141204",
+          "#2c291a",
+          "#454333",
+          "#676453",
+          "#8a8775",
+          "#aeac99",
+          "#d5d2be",
+          "#f2efdb"
+        ]
+      },
+      "head": {
+        "role": "neutral",
+        "displayName": "Header Cream",
+        "canonical": "#fbfaf3",
+        "tonalRamp": [
+          "#12120d",
+          "#2a2924",
+          "#43433d",
+          "#64635d",
+          "#878680",
+          "#acaba4",
+          "#d2d1ca",
+          "#f0efe8"
+        ]
+      },
+      "select": {
+        "role": "neutral",
+        "displayName": "Selected Row Tint",
+        "canonical": "#eef0f8",
+        "tonalRamp": [
+          "#101117",
+          "#27292e",
+          "#404248",
+          "#61636a",
+          "#84868d",
+          "#a9aab2",
+          "#cfd1d8",
+          "#eceef6"
+        ]
+      },
+      "skeleton": {
+        "role": "neutral",
+        "displayName": "Skeleton",
+        "canonical": "#ebe7cf",
+        "tonalRamp": [
+          "#151202",
+          "#2d2916",
+          "#46432f",
+          "#67644f",
+          "#8b8771",
+          "#afac95",
+          "#d6d2ba",
+          "#f3efd7"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Warm Hairline",
+        "canonical": "#e6e1c7",
+        "tonalRamp": [
+          "#161201",
+          "#2d2914",
+          "#47432d",
+          "#68644d",
+          "#8b876f",
+          "#b0ab93",
+          "#d7d2b8",
+          "#f4efd5"
+        ]
+      },
+      "line-strong": {
+        "role": "neutral",
+        "displayName": "Strong Hairline",
+        "canonical": "#d6d0ae",
+        "tonalRamp": [
+          "#171100",
+          "#2f290c",
+          "#484325",
+          "#6a6445",
+          "#8d8767",
+          "#b2ac8b",
+          "#d8d2b0",
+          "#f6f0cd"
+        ]
+      },
+      "rule": {
+        "role": "neutral",
+        "displayName": "Row Rule",
+        "canonical": "#efebd6",
+        "tonalRamp": [
+          "#151204",
+          "#2c2919",
+          "#464332",
+          "#676451",
+          "#8a8774",
+          "#afab97",
+          "#d5d2bd",
+          "#f3efda"
+        ]
+      },
+      "stamp": {
+        "role": "neutral",
+        "displayName": "Stamp Grey",
+        "canonical": "#c9c4a8",
+        "tonalRamp": [
+          "#161200",
+          "#2e2912",
+          "#47432b",
+          "#69644b",
+          "#8c876d",
+          "#b1ac90",
+          "#d7d2b6",
+          "#f5efd2"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#1c2340",
+        "tonalRamp": [
+          "#0a0e29",
+          "#1f2744",
+          "#384060",
+          "#586283",
+          "#7a85a8",
+          "#9ea9ce",
+          "#c4d0f6",
+          "#e9eeff"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted Slate",
+        "canonical": "#5f6585",
+        "tonalRamp": [
+          "#0c0e28",
+          "#222642",
+          "#3b405e",
+          "#5b6181",
+          "#7d84a6",
+          "#a2a9cc",
+          "#c7cff3",
+          "#eaeefe"
+        ]
+      },
+      "white": {
+        "role": "neutral",
+        "displayName": "White",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "#121212",
+          "#292929",
+          "#424242",
+          "#636363",
+          "#868686",
+          "#ababab",
+          "#d1d1d1",
+          "#eeeeee"
+        ]
+      },
+      "red": {
+        "role": "tertiary",
+        "displayName": "Flag Red",
+        "canonical": "#c42b3b",
+        "tonalRamp": [
+          "#2c0002",
+          "#53010e",
+          "#80011b",
+          "#b61930",
+          "#e14952",
+          "#fc8080",
+          "#febfbc",
+          "#fee9e8"
+        ]
+      },
+      "red-bg": {
+        "role": "tertiary",
+        "displayName": "Flag Red Tint",
+        "canonical": "#fdf1f2",
+        "tonalRamp": [
+          "#170f10",
+          "#2f2627",
+          "#494040",
+          "#6a6061",
+          "#8e8384",
+          "#b3a8a9",
+          "#d9cecf",
+          "#f7ebec"
+        ]
+      },
+      "red-line": {
+        "role": "tertiary",
+        "displayName": "Flag Red Line",
+        "canonical": "#f3c7cc",
+        "tonalRamp": [
+          "#23060c",
+          "#3e1e23",
+          "#5a373c",
+          "#7d575c",
+          "#a27a7f",
+          "#c89ea3",
+          "#f0c4c9",
+          "#fee8eb"
+        ]
+      },
+      "red-on-navy": {
+        "role": "tertiary",
+        "displayName": "Flag Red on Navy",
+        "canonical": "#f6a3ab",
+        "tonalRamp": [
+          "#2c0007",
+          "#4e091a",
+          "#6d2833",
+          "#934953",
+          "#ba6c75",
+          "#e29199",
+          "#fdbec3",
+          "#ffe8e9"
+        ]
+      },
+      "green": {
+        "role": "tertiary",
+        "displayName": "Stamp Green",
+        "canonical": "#2f7d32",
+        "tonalRamp": [
+          "#001800",
+          "#023306",
+          "#03520d",
+          "#27762b",
+          "#4e9b4f",
+          "#73c173",
+          "#99e898",
+          "#cbffc9"
+        ]
+      },
+      "amber": {
+        "role": "tertiary",
+        "displayName": "Warning Amber",
+        "canonical": "#8a5a12",
+        "tonalRamp": [
+          "#1f0d00",
+          "#3b2300",
+          "#5e3900",
+          "#87580e",
+          "#ad7b3a",
+          "#d4a05f",
+          "#fcc685",
+          "#feebd5"
+        ]
+      },
+      "amber-bg": {
+        "role": "tertiary",
+        "displayName": "Warning Amber Tint",
+        "canonical": "#fbf3e4",
+        "tonalRamp": [
+          "#161107",
+          "#2e281d",
+          "#484235",
+          "#696256",
+          "#8c8578",
+          "#b1aa9c",
+          "#d8d0c1",
+          "#f6eedf"
+        ]
+      },
+      "amber-line": {
+        "role": "tertiary",
+        "displayName": "Warning Amber Line",
+        "canonical": "#ecd3a4",
+        "tonalRamp": [
+          "#1b0f00",
+          "#372500",
+          "#543f11",
+          "#766034",
+          "#9a8356",
+          "#c0a87a",
+          "#e7ce9f",
+          "#ffecca"
+        ]
+      },
+      "amber-on-navy": {
+        "role": "tertiary",
+        "displayName": "Warning Amber on Navy",
+        "canonical": "#f2c879",
+        "tonalRamp": [
+          "#1c0f00",
+          "#372500",
+          "#573d00",
+          "#7f5d0e",
+          "#a67f2d",
+          "#cda455",
+          "#f4ca7b",
+          "#feeccc"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "The one page heading in the main column (colleague name, Conferences, Roster). Navy."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Section headings on the Conferences page."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Panel and popover headings."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Table cells, inputs, rail rows."
+      },
+      "body-small": {
+        "displayName": "Body Small",
+        "purpose": "Executives line, shared-with, chips, notes, summaries."
+      },
+      "numeral": {
+        "displayName": "Numeral",
+        "purpose": "Every time, count, total and ticker; tabular Figtree bold."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Uppercase table headers and field labels (11px)."
+      },
+      "stamp": {
+        "displayName": "Stamp",
+        "purpose": "Stamp text on state chips."
+      },
+      "wordmark": {
+        "displayName": "Wordmark",
+        "purpose": "The WOODLINE wordmark only."
+      }
+    },
+    "shadows": [
+      {
+        "name": "float",
+        "value": "0 8px 24px rgba(24,41,88,0.18)",
+        "purpose": "Popovers and the source-panel drawer."
+      },
+      {
+        "name": "bubble",
+        "value": "0 4px 12px rgba(24,41,88,0.18)",
+        "purpose": "Inline editor's error bubble."
+      },
+      {
+        "name": "toast",
+        "value": "0 4px 12px rgba(24,41,88,0.25)",
+        "purpose": "The ink-filled sync toast."
+      },
+      {
+        "name": "paper",
+        "value": "0 1px 3px rgba(24,41,88,0.14)",
+        "purpose": "The rendered PDF page in its frame."
+      },
+      {
+        "name": "knob",
+        "value": "0 1px 2px rgba(24,41,88,0.3)",
+        "purpose": "The roster switch knob."
+      }
+    ],
+    "motion": [
+      {
+        "name": "state-change",
+        "value": "150ms ease-out",
+        "purpose": "Colour transitions on buttons, chips, rows, links."
+      },
+      {
+        "name": "stamp-land",
+        "value": "200ms cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Stamp comes down at scale 1.08 / -6deg and settles to -3deg when a meeting turns VERIFIED or SENT. The one authored moment."
+      },
+      {
+        "name": "reveal",
+        "value": "180ms cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Revision strip arriving under the bar (fade + 6px drop)."
+      },
+      {
+        "name": "drawer",
+        "value": "200ms ease-out",
+        "purpose": "Source-panel drawer sliding in below 1281px."
+      },
+      {
+        "name": "progress-sweep",
+        "value": "1.8s cubic-bezier(0.45, 0, 0.2, 1) infinite",
+        "purpose": "Extraction progress bar on upload; 4s under reduced motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "rail",
+        "value": "901px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      },
+      {
+        "name": "panel",
+        "value": "1281px"
+      },
+      {
+        "name": "itinerary-stack (container)",
+        "value": "616px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Navy fill for primary actions on light grounds.",
+      "html": "<button class=\"ds-btn ds-btn-primary\">Verify meeting</button>",
+      "css": ".ds-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 16px;border-radius:6px;font-family:var(--font-heading);font-weight:700;font-size:14px;white-space:nowrap;cursor:pointer;border:1px solid transparent;transition:background-color 150ms ease-out,border-color 150ms ease-out;}.ds-btn:focus-visible{outline:2px solid var(--color-navy);outline-offset:2px;}.ds-btn-primary{background:var(--color-navy);color:#fff;}.ds-btn-primary:hover{background:var(--color-navy-2);}.ds-btn-primary:active{background:var(--color-navy-3);}"
+    },
+    {
+      "name": "Beige Button",
+      "kind": "button",
+      "refersTo": "button-beige",
+      "description": "The single forward action of a band, on the navy bar.",
+      "html": "<div class=\"ds-bar-demo\"><button class=\"ds-btn ds-btn-beige\">Verify all ready (4)</button></div>",
+      "css": ".ds-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 16px;border-radius:6px;font-family:var(--font-heading);font-weight:700;font-size:14px;white-space:nowrap;cursor:pointer;border:1px solid transparent;transition:background-color 150ms ease-out,border-color 150ms ease-out;}.ds-btn:focus-visible{outline:2px solid var(--color-navy);outline-offset:2px;}.ds-bar-demo{background:var(--color-navy);padding:12px 16px;display:inline-block;}.ds-btn-beige{background:var(--color-beige);color:var(--color-navy);}.ds-btn-beige:hover{background:var(--color-beige-2);}.ds-btn-beige:active{background:var(--color-beige-3);}.ds-btn-beige:focus-visible{outline-color:var(--color-beige);}"
+    },
+    {
+      "name": "Quiet Button",
+      "kind": "button",
+      "refersTo": "button-quiet",
+      "description": "Default button: white with a warm hairline.",
+      "html": "<button class=\"ds-btn ds-btn-quiet\">Cancel meeting</button>",
+      "css": ".ds-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 16px;border-radius:6px;font-family:var(--font-heading);font-weight:700;font-size:14px;white-space:nowrap;cursor:pointer;border:1px solid transparent;transition:background-color 150ms ease-out,border-color 150ms ease-out;}.ds-btn:focus-visible{outline:2px solid var(--color-navy);outline-offset:2px;}.ds-btn-quiet{background:#fff;border-color:var(--color-line);color:var(--color-ink);}.ds-btn-quiet:hover{background:var(--color-cream);border-color:var(--color-line-strong);}.ds-btn-quiet:active{background:var(--color-cream-2);}"
+    },
+    {
+      "name": "Danger Button",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "Armed state of the two-step confirm (no modal).",
+      "html": "<button class=\"ds-btn ds-btn-danger\">Delete for good?</button>",
+      "css": ".ds-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 16px;border-radius:6px;font-family:var(--font-heading);font-weight:700;font-size:14px;white-space:nowrap;cursor:pointer;border:1px solid transparent;transition:background-color 150ms ease-out,border-color 150ms ease-out;}.ds-btn:focus-visible{outline:2px solid var(--color-navy);outline-offset:2px;}.ds-btn-danger{background:#fff;border-color:var(--color-red-line);color:var(--color-red);}.ds-btn-danger:hover{background:var(--color-red-bg);border-color:var(--color-red);}.ds-btn-danger:focus-visible{outline-color:var(--color-red);}"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Hairline outline for secondary actions on the navy bar.",
+      "html": "<div class=\"ds-bar-demo\"><button class=\"ds-btn ds-btn-ghost\">Retry</button></div>",
+      "css": ".ds-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 16px;border-radius:6px;font-family:var(--font-heading);font-weight:700;font-size:14px;white-space:nowrap;cursor:pointer;border:1px solid transparent;transition:background-color 150ms ease-out,border-color 150ms ease-out;}.ds-btn:focus-visible{outline:2px solid var(--color-navy);outline-offset:2px;}.ds-bar-demo{background:var(--color-navy);padding:12px 16px;display:inline-block;}.ds-btn-ghost{background:transparent;border-color:rgb(255 255 255 / 0.35);color:#fff;}.ds-btn-ghost:hover{background:var(--color-navy-2);border-color:rgb(255 255 255 / 0.6);}.ds-btn-ghost:active{background:var(--color-navy-3);}.ds-btn-ghost:focus-visible{outline-color:var(--color-beige);}"
+    },
+    {
+      "name": "Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Labelled text field with navy focus.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">Room</span><input class=\"ds-input\" value=\"Ballroom C\"></label>",
+      "css": ".ds-field{display:block;width:260px;}.ds-field-label{display:block;margin-bottom:4px;font-family:var(--font-sans);font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--color-muted);}.ds-input{width:100%;border:1px solid var(--color-line);border-radius:6px;background:#fff;padding:6px 10px;font-family:var(--font-sans);font-size:14px;font-weight:500;color:var(--color-ink);caret-color:var(--color-navy);transition:border-color 150ms;}.ds-input:hover{border-color:var(--color-line-strong);}.ds-input:focus{border-color:var(--color-navy);}.ds-input:focus-visible{outline:2px solid var(--color-navy);outline-offset:1px;}"
+    },
+    {
+      "name": "Status Chips",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Filter pills with Figtree counts; selected fills navy-2.",
+      "html": "<div class=\"ds-chips\"><button class=\"ds-chip ds-chip-on\" aria-pressed=\"true\">All <b>8</b></button><button class=\"ds-chip\">Needs attention <b class=\"ds-red\">2</b></button><button class=\"ds-chip\">Warnings <b class=\"ds-amber\">3</b></button><button class=\"ds-chip\">Sent <b class=\"ds-zero\">0</b></button></div>",
+      "css": ".ds-chips{display:flex;flex-wrap:wrap;gap:8px;}.ds-chip{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:9999px;border:1px solid var(--color-line);background:#fff;color:var(--color-ink);font-family:var(--font-sans);font-size:13px;font-weight:600;cursor:pointer;transition:background-color 150ms ease-out,border-color 150ms ease-out;}.ds-chip b{font-family:var(--font-heading);font-weight:700;font-variant-numeric:tabular-nums;}.ds-chip:hover{background:var(--color-cream);border-color:var(--color-line-strong);}.ds-chip:focus-visible{outline:2px solid var(--color-navy);outline-offset:2px;}.ds-chip-on,.ds-chip-on:hover{background:var(--color-navy-2);border-color:var(--color-navy-2);color:#fff;}.ds-chip-on b{color:var(--color-beige);}.ds-red{color:var(--color-red);}.ds-amber{color:var(--color-amber);}.ds-zero{color:var(--color-muted);}"
+    },
+    {
+      "name": "Stamps",
+      "kind": "custom",
+      "refersTo": "stamp-verified",
+      "description": "Meeting state stamps: tilted when earned, flat when untouched or cancelled.",
+      "html": "<div class=\"ds-stamps\"><span class=\"ds-stamp ds-stamp-navy\">VERIFIED</span><span class=\"ds-stamp ds-stamp-green\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"/></svg>SENT</span><span class=\"ds-stamp ds-stamp-red\">NEEDS TIME</span><span class=\"ds-stamp ds-stamp-flat\">DRAFT</span><span class=\"ds-stamp ds-stamp-flat ds-struck\">CANCELLED</span></div>",
+      "css": ".ds-stamps{display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:8px;}.ds-stamp{display:inline-flex;align-items:center;gap:4px;white-space:nowrap;border-radius:4px;border:1.5px solid;background:#fff;padding:4px 8px;font-family:var(--font-heading);font-size:11px;font-weight:700;line-height:1;letter-spacing:0.1em;}.ds-stamp-navy{rotate:-3deg;border-color:var(--color-navy);color:var(--color-navy);}.ds-stamp-green{rotate:-3deg;border-color:var(--color-green);color:var(--color-green);}.ds-stamp-red{rotate:-3deg;border-color:var(--color-red);color:var(--color-red);}.ds-stamp-flat{border-color:var(--color-stamp);color:var(--color-muted);}.ds-struck{text-decoration:line-through;text-decoration-thickness:1.5px;}.ds-stamp-navy:hover,.ds-stamp-green:hover{animation:ds-land 200ms cubic-bezier(0.16,1,0.3,1);}@keyframes ds-land{from{scale:1.08;rotate:-6deg;}to{scale:1;rotate:-3deg;}}@media (prefers-reduced-motion: reduce){.ds-stamp{animation:none!important;}}"
+    },
+    {
+      "name": "Colleague Rail",
+      "kind": "nav",
+      "refersTo": "rail-row",
+      "description": "Cream-2 rail of colleagues with avatars, flag dots and counts; selected row fills navy.",
+      "html": "<nav class=\"ds-rail\"><h2 class=\"ds-rail-h\">Colleagues</h2><button class=\"ds-rail-row\"><span class=\"ds-av\">AK</span><span class=\"ds-nm\">Avery Kim</span><span class=\"ds-dot ds-dot-amber\"></span><span class=\"ds-ct\">3</span></button><button class=\"ds-rail-row ds-rail-on\" aria-current=\"true\"><span class=\"ds-av\">RC</span><span class=\"ds-nm\">Riley Chen</span><span class=\"ds-dot ds-dot-amber-navy\"></span><span class=\"ds-ct\">2</span></button><button class=\"ds-rail-row\"><span class=\"ds-av\">SP</span><span class=\"ds-nm\">Sam Patel</span><span class=\"ds-ct\">2</span></button></nav>",
+      "css": ".ds-rail{width:250px;background:var(--color-cream-2);padding:20px 14px;}.ds-rail-h{margin:0 10px 8px;font-family:var(--font-heading);font-size:12px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-muted);}.ds-rail-row{display:flex;width:100%;align-items:center;gap:10px;border:0;border-radius:8px;background:transparent;padding:8px 10px;margin-bottom:2px;text-align:left;font-family:var(--font-sans);font-size:14px;font-weight:600;color:var(--color-ink);cursor:pointer;transition:background-color 150ms ease-out;}.ds-rail-row:hover{background:rgb(227 222 176 / 0.45);}.ds-rail-row:focus-visible{outline:2px solid var(--color-navy);outline-offset:2px;}.ds-rail-on,.ds-rail-on:hover{background:var(--color-navy);color:#fff;}.ds-av{display:grid;place-items:center;width:28px;height:28px;flex-shrink:0;border-radius:9999px;background:var(--color-beige);color:var(--color-navy);font-family:var(--font-heading);font-size:11px;font-weight:700;}.ds-nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}.ds-dot{width:8px;height:8px;border-radius:9999px;flex-shrink:0;}.ds-dot-amber{background:var(--color-amber);}.ds-dot-amber-navy{background:var(--color-amber-on-navy);}.ds-ct{width:24px;text-align:right;font-family:var(--font-heading);font-variant-numeric:tabular-nums;color:var(--color-muted);}.ds-rail-on .ds-ct{color:var(--color-beige);}"
+    },
+    {
+      "name": "Timetable",
+      "kind": "card",
+      "refersTo": "table-container",
+      "description": "One white hairline card per day; fixed columns, Figtree times, stamps in the last column.",
+      "html": "<section class=\"ds-tt\"><h2 class=\"ds-day\">Wednesday, December 2</h2><div class=\"ds-card\"><table><colgroup><col style=\"width:104px\"><col><col style=\"width:104px\"><col style=\"width:128px\"></colgroup><thead><tr><th>Time</th><th>Company</th><th>Room</th><th>Status</th></tr></thead><tbody><tr class=\"ds-sel\"><td><b class=\"ds-t\">9:30 AM</b><span class=\"ds-sub\">to 10:30 AM</span></td><td><b>Pixelmint Studios</b><span class=\"ds-tk\">PXMS</span><span class=\"ds-sub\">June Park, CFO · Group</span></td><td>Ballroom C</td><td><span class=\"ds-stamp\">VERIFIED</span></td></tr><tr><td><b class=\"ds-t\">9:45 AM</b><span class=\"ds-sub\">to 10:30 AM</span></td><td><b>Orbital Data Networks</b><span class=\"ds-tk\">ORDN</span><span class=\"ds-sub\">Sol Mendes, CFO · 1x1</span></td><td>Suite 2210</td><td><span class=\"ds-stamp ds-flat\">DRAFT</span></td></tr></tbody></table></div></section>",
+      "css": ".ds-tt{background:var(--color-cream);padding:16px;font-family:var(--font-sans);color:var(--color-ink);}.ds-day{margin:0 0 8px;font-family:var(--font-heading);font-size:13px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--color-blue);}.ds-card{overflow:hidden;border:1px solid var(--color-line);border-radius:8px;background:#fff;}.ds-card table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:14px;}.ds-card th{background:var(--color-head);border-bottom:1px solid var(--color-line);padding:10px 12px;text-align:left;font-family:var(--font-heading);font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--color-muted);}.ds-card td{border-bottom:1px solid var(--color-rule);padding:11px 12px;vertical-align:middle;}.ds-card tr:last-child td{border-bottom:0;}.ds-card tbody tr{cursor:pointer;transition:background-color 150ms ease-out;}.ds-card tbody tr:hover{background:var(--color-cream);}.ds-card tbody tr.ds-sel{background:var(--color-select);}.ds-t{display:block;font-family:var(--font-heading);font-variant-numeric:tabular-nums;}.ds-sub{display:block;font-size:12px;font-weight:500;color:var(--color-muted);}.ds-tk{margin-left:6px;font-family:var(--font-heading);font-size:11px;font-weight:700;color:var(--color-blue);}.ds-stamp{display:inline-flex;rotate:-3deg;border:1.5px solid var(--color-navy);border-radius:4px;background:#fff;padding:4px 8px;font-family:var(--font-heading);font-size:11px;font-weight:700;line-height:1;letter-spacing:0.1em;color:var(--color-navy);}.ds-stamp.ds-flat{rotate:0deg;border-color:var(--color-stamp);color:var(--color-muted);}"
+    },
+    {
+      "name": "Notes",
+      "kind": "custom",
+      "refersTo": "note-amber",
+      "description": "Tinted inline notes: red blocks, amber checks, cream informs.",
+      "html": "<div class=\"ds-notes\"><div class=\"ds-note ds-note-red\">No colleague matched. Add one before verifying.</div><div class=\"ds-note ds-note-amber\">Matched to Riley Chen by similar spelling. Check it.</div><div class=\"ds-note ds-note-info\">Shared with 1 colleague; edits update every calendar.</div></div>",
+      "css": ".ds-notes{display:grid;gap:8px;width:340px;}.ds-note{border:1px solid;border-radius:6px;padding:10px 12px;font-family:var(--font-sans);font-size:13px;font-weight:600;}.ds-note-red{border-color:var(--color-red-line);background:var(--color-red-bg);color:var(--color-red);}.ds-note-amber{border-color:var(--color-amber-line);background:var(--color-amber-bg);color:var(--color-amber);}.ds-note-info{border-color:var(--color-line);background:var(--color-cream);color:var(--color-ink);}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Stamped Itinerary",
+    "overview": "Meeting Calendar Sync wears the Woodline Partners house colours (taken from woodlinepartners.com) as a quiet internal desk: a navy bar across the top, a cream ground, a cream-2 rail, and white tables ruled in beige hairlines. It is a working surface for a coordinator who checks sixty meetings in one sitting, so density is high. Most text is 13 to 15px, rows are compact, and every number is set in tabular Figtree so the columns read as a timetable rather than prose.\n\nThe world borrows its character from the airline ticket wallet and the split-flap board. Columns sit at fixed widths and never move, rows rank by time, and state lives in small letter-spaced stamps that sit on white chips and tilt three degrees when a person has acted on them (VERIFIED, SENT). Untouched states (DRAFT) and cancelled ones lie flat, and cancelled meetings are struck through instead of vanishing. The one authored motion is the stamp landing; everything else changes colour in 150ms and stays put.\n\nDepth is flat. Surfaces are separated by tone (navy, cream, cream-2, white) and 1px warm hairlines; soft navy-tinted shadows appear only on layers that float above the layout. The app has no photography and no hero banners. It must never read as a marketing site.",
+    "keyCharacteristics": [
+      "Navy bar, cream ground, cream-2 rail, white tables with beige hairlines.",
+      "Figtree for headings, numbers, labels and stamps; Manrope for running UI text; Libre Baskerville only in the WOODLINE wordmark.",
+      "Tilted stamps for states a person earned; flat stamps for states nobody has acted on yet.",
+      "Fixed-width columns that line up from day to day; nothing disappears, it gets struck.",
+      "Flat at rest; shadows only on floating layers."
+    ],
+    "rules": [
+      {
+        "name": "The One Beige Action Rule",
+        "body": "A beige fill marks the single forward action of its band: Verify all ready on the bar, Accept all on the revision strip. One per band; everything else is quiet or ghost.",
+        "section": "colors"
+      },
+      {
+        "name": "The Navy-Means-Here Rule",
+        "body": "Where the user is shows in navy: the selected rail row is filled navy, the selected chip navy-2, the active nav link carries a beige underline, and the focus ring is a 2px navy outline (beige on navy).",
+        "section": "colors"
+      },
+      {
+        "name": "The On-Navy Twin Rule",
+        "body": "On the navy bar, status colours switch to their twins (red-on-navy, amber-on-navy) and focus rings switch to beige. Base red, amber and navy outlines never sit on navy.",
+        "section": "colors"
+      },
+      {
+        "name": "The Figtree Figures Rule",
+        "body": "Any number a coordinator compares (time, count, total, ticker) is Figtree bold with tabular figures, so columns of figures align.",
+        "section": "typography"
+      },
+      {
+        "name": "The Wordmark-Only Serif Rule",
+        "body": "Libre Baskerville appears only in the WOODLINE wordmark (uppercase, 0.25em tracking). No other heading, label or number uses it.",
+        "section": "typography"
+      },
+      {
+        "name": "The Floating-Only Shadow Rule",
+        "body": "If it sits in the layout, it has a hairline and no shadow. A shadow means the layer floats above something (popover, drawer, toast, bubble), or it is a physical object in the scene (the PDF page, the switch knob).",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do separate surfaces by tone and 1px warm hairlines (line, rule) rather than shadows.",
+      "Do set every time, count, total and ticker in Figtree bold with tabular figures.",
+      "Do tilt a stamp (-3deg) only for a state a person acted on, and keep DRAFT and CANCELLED flat.",
+      "Do put every stamp on a white chip so green and red keep their contrast on the select tint.",
+      "Do strike cancelled meetings through (1.5px) and leave them in place; nothing disappears.",
+      "Do keep timetable columns at fixed widths so days line up, and let rows stack only below 616px of column width.",
+      "Do use the on-navy twins (red-on-navy, amber-on-navy) and a beige focus ring on the navy bar.",
+      "Do use inline SVG icons (lucide line icons, 2 to 3px stroke) for checks, warnings and actions.",
+      "Do keep transitions to 150ms ease-out colour changes, and honour reduced motion (stamps and reveals stop, transitions collapse)."
+    ],
+    "donts": [
+      "Don't use photos, hero banners or marketing-page composition; this is an internal Operate tool.",
+      "Don't use Libre Baskerville outside the WOODLINE wordmark.",
+      "Don't put more than one beige-filled button in a band.",
+      "Don't add shadows to resting cards, tables, chips or buttons; and never use grey or black shadows.",
+      "Don't animate beyond the stamp landing, the revision-strip reveal and the extraction progress sweep; loading skeletons hold still.",
+      "Don't use typed glyphs (✓, →) for status or icons; the check in SENT is an SVG.",
+      "Don't introduce new radii; use 4px (stamps, focus), 6px (controls), 8px (containers) or a full pill."
+    ]
+  }
+}
