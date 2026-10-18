@@ -1,0 +1,221 @@
+{
+  "conference_name": "Industrials Conference 2026",
+  "broker": "Example Securities",
+  "hotel": "The Example Grand Hotel",
+  "city": "New York, NY",
+  "timezone": "America/New_York",
+  "schedule_for": "Sample Capital",
+  "meetings": [
+    {
+      "date": "2026-11-10",
+      "start": "08:00",
+      "end": "08:45",
+      "room": "Salon 4",
+      "company": "Northwind Robotics",
+      "ticker": "NWRB",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Dana Shore, CFO"
+      ],
+      "firm_attendees": [
+        "Avery Kim",
+        "Jordan Lee"
+      ],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2026-11-10",
+      "start": "09:00",
+      "end": "09:45",
+      "room": "Suite 1201",
+      "company": "Borealis Grid Systems",
+      "ticker": "BRGS",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Tom Rayner, CEO",
+        "Ellen Ko, Investor Relations"
+      ],
+      "firm_attendees": [
+        "Jordan Lee"
+      ],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2026-11-10",
+      "start": "10:00",
+      "end": "10:45",
+      "room": "Salon 4",
+      "company": "Cobalt Freight Lines",
+      "ticker": "CBFL",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Priya Nair, CFO"
+      ],
+      "firm_attendees": [
+        "Riley Chen",
+        "Avery Kim"
+      ],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2026-11-10",
+      "start": "11:00",
+      "end": "11:45",
+      "room": "Suite 1410",
+      "company": "Halcyon Aerostructures",
+      "ticker": "HLAS",
+      "format": "group",
+      "company_attendees": [
+        "Marcus Webb, CEO"
+      ],
+      "firm_attendees": [
+        "Taylor Brooks"
+      ],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2026-11-10",
+      "start": "12:00",
+      "end": "13:15",
+      "room": "Grand Ballroom B",
+      "company": "Keystone Valve Corp",
+      "ticker": "KSVC",
+      "format": "meal",
+      "company_attendees": [
+        "Lena Ortiz, CFO"
+      ],
+      "firm_attendees": [
+        "Avery Kim",
+        "Jordan Lee",
+        "Riley Chen"
+      ],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2026-11-10",
+      "start": "13:30",
+      "end": "14:15",
+      "room": "TBD",
+      "company": "Meridian Rail Holdings",
+      "ticker": "MRHL",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Owen Pratt, CFO"
+      ],
+      "firm_attendees": [
+        "Morgan Diaz"
+      ],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2026-11-11",
+      "start": "08:00",
+      "end": "08:45",
+      "room": "Salon 2",
+      "company": "Ironleaf Packaging",
+      "ticker": "IRLP",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Grace Liu, CEO"
+      ],
+      "firm_attendees": [
+        "Sam Patel"
+      ],
+      "notes": null,
+      "page": 2
+    },
+    {
+      "date": "2026-11-11",
+      "start": "09:00",
+      "end": "09:45",
+      "room": "Salon 2",
+      "company": "Quarry Point Materials",
+      "ticker": "QPMT",
+      "format": "group",
+      "company_attendees": [
+        "Victor Hale, CFO"
+      ],
+      "firm_attendees": [
+        "Sam Patel",
+        "Taylor Brooks"
+      ],
+      "notes": null,
+      "page": 2
+    },
+    {
+      "date": "2026-11-11",
+      "start": "10:00",
+      "end": "10:45",
+      "room": "Suite 1201",
+      "company": "Tidewater Pumps",
+      "ticker": "TWPM",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Nina Brandt, Investor Relations"
+      ],
+      "firm_attendees": [
+        "Chris Wong"
+      ],
+      "notes": null,
+      "page": 2
+    },
+    {
+      "date": "2026-11-11",
+      "start": "11:00",
+      "end": "11:45",
+      "room": "Suite 1201",
+      "company": "Summit Forge Industries",
+      "ticker": "SMFI",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Ray Castillo, CEO"
+      ],
+      "firm_attendees": [
+        "Avery Kim"
+      ],
+      "notes": null,
+      "page": 2
+    },
+    {
+      "date": "2026-11-11",
+      "start": "14:00",
+      "end": "14:45",
+      "room": "Salon 4",
+      "company": "Lumen Sensor Works",
+      "ticker": "LMSW",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Hana Mori, CFO"
+      ],
+      "firm_attendees": [
+        "Jordan Lee"
+      ],
+      "notes": null,
+      "page": 2
+    },
+    {
+      "date": "2026-11-11",
+      "start": "15:00",
+      "end": "15:45",
+      "room": "Salon 4",
+      "company": "Granite Bay Logistics",
+      "ticker": "GBLG",
+      "format": "group",
+      "company_attendees": [
+        "Eli Turner, CFO"
+      ],
+      "firm_attendees": [
+        "Morgan Diaz",
+        "Riley Chen"
+      ],
+      "notes": null,
+      "page": 2
+    }
+  ]
+}

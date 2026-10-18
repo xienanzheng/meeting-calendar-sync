@@ -1,0 +1,101 @@
+{
+  "conference_name": "Global Healthcare Conference 2026",
+  "broker": "Demo Bank",
+  "hotel": "The Sample Park Hotel",
+  "city": "London",
+  "timezone": "Europe/London",
+  "schedule_for": "Sam Patel",
+  "meetings": [
+    {
+      "date": "2026-11-17",
+      "start": "08:00",
+      "end": null,
+      "room": "Garden Room",
+      "company": "Asterion Biologics",
+      "ticker": "ASTB",
+      "format": "meal",
+      "company_attendees": [
+        "Dr. Helen Marsh, CEO"
+      ],
+      "firm_attendees": [],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2026-11-17",
+      "start": "09:30",
+      "end": null,
+      "room": "Suite 502",
+      "company": "Corvid Diagnostics",
+      "ticker": "CRVD",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Paul Okafor, CFO"
+      ],
+      "firm_attendees": [],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2026-11-17",
+      "start": "11:00",
+      "end": null,
+      "room": "Churchill Room",
+      "company": "Elmstone Pharma",
+      "ticker": "ELMP",
+      "format": "group",
+      "company_attendees": [
+        "Sofia Reyes, CFO",
+        "Tim Hart, Investor Relations"
+      ],
+      "firm_attendees": [],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2026-11-17",
+      "start": "14:00",
+      "end": null,
+      "room": "Suite 502",
+      "company": "Juniper MedDevices",
+      "ticker": "JNMD",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Arun Mehta, CEO"
+      ],
+      "firm_attendees": [],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2026-11-18",
+      "start": "09:00",
+      "end": null,
+      "room": "Suite 610",
+      "company": "Larkspur Genomics",
+      "ticker": "LKGN",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Beth Collins, CFO"
+      ],
+      "firm_attendees": [],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2026-11-18",
+      "start": "10:30",
+      "end": null,
+      "room": "Suite 610",
+      "company": "Mossgate Therapeutics",
+      "ticker": "MSGT",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Omar Haddad, CEO"
+      ],
+      "firm_attendees": [],
+      "notes": null,
+      "page": 1
+    }
+  ]
+}

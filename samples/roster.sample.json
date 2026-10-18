@@ -1,0 +1,36 @@
+[
+  {
+    "name": "Avery Kim",
+    "email": "avery.kim@example.com",
+    "aliases": []
+  },
+  {
+    "name": "Sam Patel",
+    "email": "sam.patel@example.com",
+    "aliases": [
+      "Samir Patel"
+    ]
+  },
+  {
+    "name": "Jordan Lee",
+    "email": "jordan.lee@example.com",
+    "aliases": []
+  },
+  {
+    "name": "Riley Chen",
+    "email": "riley.chen@example.com",
+    "aliases": []
+  },
+  {
+    "name": "Morgan Diaz",
+    "email": "morgan.diaz@example.com",
+    "aliases": []
+  },
+  {
+    "name": "Taylor Brooks",
+    "email": "taylor.brooks@example.com",
+    "aliases": [
+      "Tay Brooks"
+    ]
+  }
+]

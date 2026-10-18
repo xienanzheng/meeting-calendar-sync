@@ -1,0 +1,151 @@
+{
+  "conference_name": "Technology Summit 2026",
+  "broker": "Demo Partners Securities",
+  "hotel": "The Demo Resort",
+  "city": "Las Vegas, NV",
+  "timezone": "America/Los_Angeles",
+  "schedule_for": "Sample Capital",
+  "meetings": [
+    {
+      "date": "2026-12-02",
+      "start": "08:30",
+      "end": "09:15",
+      "room": "Suite 3105",
+      "company": "Vantage Cloud Software",
+      "ticker": "VTCS",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Ari Feld, CEO"
+      ],
+      "firm_attendees": [
+        "A. Kim"
+      ],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2026-12-02",
+      "start": "09:30",
+      "end": "10:30",
+      "room": "Ballroom C",
+      "company": "Pixelmint Studios",
+      "ticker": "PXMS",
+      "format": "group",
+      "company_attendees": [
+        "June Park, CFO"
+      ],
+      "firm_attendees": [
+        "A. Kim",
+        "Rilay Chen"
+      ],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2026-12-02",
+      "start": "09:45",
+      "end": "10:30",
+      "room": "Suite 2210",
+      "company": "Orbital Data Networks",
+      "ticker": "ORDN",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Sol Mendes, CFO"
+      ],
+      "firm_attendees": [
+        "Rilay Chen"
+      ],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2026-12-02",
+      "start": "12:00",
+      "end": "13:30",
+      "room": "Sage Room",
+      "company": "Brightpath Payments",
+      "ticker": "BRPY",
+      "format": "meal",
+      "company_attendees": [
+        "Kim Alvarez, CEO",
+        "Rob Tan, CFO"
+      ],
+      "firm_attendees": [
+        "Morgan D.",
+        "Tay Brooks"
+      ],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2026-12-03",
+      "start": "08:00",
+      "end": "08:45",
+      "room": "Suite 3105",
+      "company": "Kestrel Security",
+      "ticker": "KSTL",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Ivan Petrov, CFO"
+      ],
+      "firm_attendees": [
+        "Jordan Lee"
+      ],
+      "notes": null,
+      "page": 2
+    },
+    {
+      "date": "2026-12-03",
+      "start": "09:00",
+      "end": "09:45",
+      "room": "Suite 3105",
+      "company": "Nimbus Health Tech",
+      "ticker": "NBHT",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Clara Voss, CEO"
+      ],
+      "firm_attendees": [
+        "Samir Patel"
+      ],
+      "notes": null,
+      "page": 2
+    },
+    {
+      "date": "2026-12-03",
+      "start": "10:00",
+      "end": "11:00",
+      "room": "Ballroom A",
+      "company": "Driftwood Semiconductors",
+      "ticker": "DWSC",
+      "format": "group",
+      "company_attendees": [
+        "Ken Ito, CFO"
+      ],
+      "firm_attendees": [
+        "Jordan Lee",
+        "Samir Patel",
+        "A. Kim"
+      ],
+      "notes": null,
+      "page": 2
+    },
+    {
+      "date": "2026-12-03",
+      "start": "13:00",
+      "end": "13:45",
+      "room": "Suite 2210",
+      "company": "Copperline Telecom",
+      "ticker": "CPLT",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Maya Ross, Investor Relations"
+      ],
+      "firm_attendees": [
+        "Tay Brooks"
+      ],
+      "notes": null,
+      "page": 2
+    }
+  ]
+}
