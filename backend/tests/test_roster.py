@@ -58,7 +58,7 @@ def test_accents_and_apostrophes():
     assert normalize_name("Liam O'Neil") == "liam o neil"
     roster = [RosterEntry(1, "José Núñez"), RosterEntry(2, "Liam O'Neil")]
     assert match_name("JOSÉ NÚÑEZ", roster) == MatchResult(1, "exact")
-    assert match_name("Liam O'Neil", roster) == MatchResult(2, "exact")
+    assert match_name("Liam O’Neil", roster) == MatchResult(2, "exact")
     assert match_name("J. Núñez", roster) == MatchResult(1, "initial")
 
 
