@@ -23,6 +23,7 @@ export interface SyncNote {
 }
 
 const ROUTES = { ics: ".ics files", graph: "Outlook (Microsoft Graph)" } as const;
+const SHORT_ROUTES = { ics: ".ics files", graph: "Outlook" } as const;
 const NOTE_MS = 6000;
 
 /** Calendar entries the server has written for each colleague (the ones with a file to download). */
@@ -245,35 +246,40 @@ export function SyncStatus({
   const pending = detail.counts.pending_actions;
   const onCalendars = onCalendarCount(detail);
   const route = `via ${ROUTES[sink]}`;
+  const shortRoute = `via ${SHORT_ROUTES[sink]}`;
+  const placed = onCalendars === 0 ? "None on calendars yet" : `${onCalendars} on calendars`;
 
+  // Every state is words at every width. Below 1680px the bar is tight, so the lines take their short
+  // form (`titleShort`/`subShort`); the full line is still the tooltip.
   let icon = <CalendarCheck className="size-4 text-beige" aria-hidden="true" />;
-  let title = `${onCalendars} on calendars`;
+  let title = placed;
   let sub = route;
-  // Below 1680px the bar is tight: the calm states shrink to icon + count (the full line is the tooltip);
-  // anything to act on keeps its words.
-  let short = String(onCalendars);
+  let titleShort = onCalendars === 0 ? "0 on calendars" : placed;
+  let subShort = shortRoute;
   let action: "retry" | "sync" | null = null;
   if (needsSignIn) {
     icon = <LogIn className="size-4 text-beige" aria-hidden="true" />;
     title = "Sign in to Microsoft";
     sub = pending > 0 ? `${pending} ${pending === 1 ? "update" : "updates"} waiting for Outlook` : route;
-    short = "Sign in";
+    titleShort = "Sign in";
+    subShort = pending > 0 ? `${pending} waiting for Outlook` : "to Outlook";
   } else if (failed > 0) {
     icon = <CircleAlert className="size-4 text-red-on-navy" aria-hidden="true" />;
     title = `${failed} failed —`;
     sub = `${onCalendars} on calendars · ${route}`;
-    short = `${failed} failed`;
+    titleShort = title;
+    subShort = `${onCalendars} on calendars`;
     action = "retry";
   } else if (pending > 0) {
     icon = <RefreshCw className="size-4 text-amber-on-navy" aria-hidden="true" />;
     title = `${pending} to update —`;
-    short = `${pending} to update`;
+    titleShort = title;
     action = "sync";
   } else if (onCalendars === 0) {
     icon = <Calendar className="size-4 text-white/75" aria-hidden="true" />;
-    title = "Nothing on calendars yet";
   }
   const tooltip = `${title.replace(/ —$/, "")} · ${sub}`;
+  const titleTone = failed > 0 && !needsSignIn ? "text-red-on-navy" : "text-white";
 
   return (
     <div className="relative flex shrink-0 items-center gap-1.5">
@@ -284,22 +290,20 @@ export function SyncStatus({
         onClick={needsSignIn ? startLogin : undefined}
         title={tooltip}
         className={[
-          "flex items-center gap-2 rounded-md px-2 py-1 text-left transition-colors duration-150 hover:bg-navy-2 max-[1680px]:gap-1.5",
+          "flex items-center gap-2 rounded-md px-2 py-1 text-left transition-colors duration-150 hover:bg-navy-2 max-[1280px]:gap-1.5 max-[1280px]:px-1.5",
           needsSignIn ? "border border-white/35" : "",
         ].join(" ")}
       >
         {icon}
-        <span className="leading-tight max-[1680px]:sr-only">
-          <span className={`tabular block whitespace-nowrap text-[13px] font-semibold ${failed > 0 && !needsSignIn ? "text-red-on-navy" : "text-white"}`}>
-            {title}
+        <span className="leading-tight">
+          <span className={`tabular block whitespace-nowrap text-[13px] font-semibold max-[1366px]:text-xs ${titleTone}`}>
+            <span className="max-[1680px]:hidden">{title}</span>
+            <span className="min-[1680px]:hidden">{titleShort}</span>
           </span>
-          <span className="block whitespace-nowrap text-[11px] font-medium text-white/75">{sub}</span>
-        </span>
-        <span
-          aria-hidden="true"
-          className={`tabular whitespace-nowrap font-heading text-[15px] font-bold min-[1680px]:hidden ${failed > 0 && !needsSignIn ? "text-red-on-navy" : "text-white"}`}
-        >
-          {short}
+          <span className="block whitespace-nowrap text-[11px] font-medium text-white/75">
+            <span className="max-[1680px]:hidden">{sub}</span>
+            <span className="min-[1680px]:hidden">{subShort}</span>
+          </span>
         </span>
       </button>
       {action && (

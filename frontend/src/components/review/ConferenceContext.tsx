@@ -65,9 +65,9 @@ function TimezonePicker({ timezone, onSave }: { timezone: string | null; onSave:
         {!timezone && <CircleAlert className="size-3.5" aria-hidden="true" />}
         {timezone ? (
           <>
-            {/* Below 1280px the bar is tight: "ET", as the table's local-time hints write it. */}
-            <span className="max-[1280px]:sr-only">{tzLabel(timezone)}</span>
-            <span aria-hidden="true" title={tzLabel(timezone)} className="min-[1280px]:hidden">
+            {/* Below 1366px the bar is tight: "ET", as the table's local-time hints write it. */}
+            <span className="max-[1366px]:sr-only">{tzLabel(timezone)}</span>
+            <span aria-hidden="true" title={tzLabel(timezone)} className="min-[1366px]:hidden">
               {tzShort(timezone)}
             </span>
           </>
@@ -200,7 +200,7 @@ export function ConferenceContext({
             </span>
           )}
         </div>
-        <div className="flex min-w-0 items-center gap-1.5 whitespace-nowrap text-xs font-medium text-white/75">
+        <div className="flex min-w-0 items-center gap-1.5 whitespace-nowrap text-xs font-medium text-white/75 max-[1280px]:gap-1">
           {place && (
             <>
               {/* Truncates, but never below ~18 characters ("The Demo Resort · L…"), so the hotel stays readable. */}

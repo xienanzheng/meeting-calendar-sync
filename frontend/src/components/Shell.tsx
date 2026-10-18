@@ -90,10 +90,11 @@ export function Shell({ context, actions, scroll = true, children }: ShellProps)
         Skip to content
       </a>
       {/* With page context (the Review page) the bar keeps every part down to laptop widths by tightening:
-          below 1680px the product name stacks under the wordmark and the gaps narrow; below 1024px the
+          below 1680px the product name stacks under the wordmark and the gaps narrow (more below 1366 and
+          1280px, where the Review page's actions shrink too); below 1024px the
           context drops to a second row; on phones (<640px) only the mark stays in view. */}
       <header
-        className={`on-navy flex min-h-16 shrink-0 items-center gap-y-1.5 bg-navy px-7 text-white ${context ? "gap-x-4 min-[1680px]:gap-x-6 max-[1280px]:gap-x-3.5 max-lg:flex-wrap max-lg:px-4 max-lg:py-2.5" : "gap-x-6"}`}
+        className={`on-navy flex min-h-16 shrink-0 items-center gap-y-1.5 bg-navy px-7 text-white ${context ? "gap-x-4 min-[1680px]:gap-x-6 max-[1366px]:gap-x-3.5 max-[1280px]:gap-x-3 max-lg:flex-wrap max-lg:px-4 max-lg:py-2.5" : "gap-x-6"}`}
       >
         <Link
           to="/"
@@ -113,12 +114,12 @@ export function Shell({ context, actions, scroll = true, children }: ShellProps)
             </span>
           </span>
         </Link>
-        <div className={`flex min-w-0 flex-1 items-center gap-3 ${context ? "max-lg:order-last max-lg:basis-full" : ""}`}>
+        <div className={`flex min-w-0 flex-1 items-center gap-3 ${context ? "max-[1280px]:gap-2 max-lg:order-last max-lg:basis-full" : ""}`}>
           {context}
         </div>
         <nav
           aria-label="Main"
-          className={`ml-auto flex shrink-0 items-center text-sm font-semibold ${context ? "gap-3.5 min-[1680px]:gap-5 max-[1280px]:gap-3 max-[1280px]:text-[13px]" : "gap-5"}`}
+          className={`ml-auto flex shrink-0 items-center text-sm font-semibold ${context ? "gap-3.5 min-[1680px]:gap-5 max-[1366px]:gap-3 max-[1366px]:text-[13px]" : "gap-5"}`}
         >
           <NavLink to="/" end className={({ isActive }) => navClass(isActive || inConferences)}>
             Conferences
@@ -132,7 +133,7 @@ export function Shell({ context, actions, scroll = true, children }: ShellProps)
         <div className={`hidden shrink-0 items-center gap-2 ${context ? "min-[2200px]:flex" : "xl:flex"}`}>
           <ConfigBadges config={config} error={error} />
         </div>
-        {actions && <div className="flex shrink-0 items-center gap-3 max-[1280px]:gap-2.5 max-sm:min-w-0 max-sm:shrink max-sm:flex-wrap">{actions}</div>}
+        {actions && <div className="flex shrink-0 items-center gap-3 max-[1366px]:gap-2.5 max-[1280px]:gap-2 max-sm:min-w-0 max-sm:shrink max-sm:flex-wrap">{actions}</div>}
       </header>
       {config?.ephemeral && (
         <div

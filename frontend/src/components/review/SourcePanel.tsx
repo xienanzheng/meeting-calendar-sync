@@ -40,13 +40,14 @@ import {
   type Revision,
   type RevisionChange,
 } from "../../api";
-import { dayHeading, formatLabel, formatTime12 } from "../../lib/format";
+import { formatLabel, formatTime12 } from "../../lib/format";
 import { readableSummary } from "../../lib/revision";
 import { conferenceDates, isOnCalendars, sharedWith, type Selection } from "../../lib/review";
 import { Button, ConfirmButton } from "../Button";
 import { fieldLabelClass, inputClass } from "../fields";
 import { Note } from "../Note";
 import { AttendeePicker } from "./AttendeePicker";
+import { DateSelect, OTHER_DATE, OtherDateInput } from "./DateSelect";
 import type { RowTarget } from "./PdfViewer";
 
 // pdf.js is large; it loads with the first source panel, not with the app.
@@ -225,12 +226,9 @@ function FormatField({ value, disabled, onSave }: { value: MeetingFormat; disabl
   );
 }
 
-const OTHER_DATE = "other";
-
 /**
- * The meeting's date as one of the conference's days, written like the day headings ("Wednesday,
- * December 2") so no browser locale can turn Dec 2 into 02/12. "Other date…" opens a date input for a
- * day outside the conference, with the date it reads spelled out under it.
+ * The meeting's date: a pick from the conference's days saves at once; "Other date…" opens a date
+ * input that saves with "Use date" or Enter (a native date field reports every keystroke as a date).
  */
 function DateField({
   value,
@@ -251,7 +249,6 @@ function DateField({
   const [otherDraft, setOtherDraft] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const options = value && !dates.includes(value) ? [...dates, value].sort() : dates;
 
   async function save(next: string) {
     if (!next || next === value) {
@@ -276,74 +273,47 @@ function DateField({
         Date
         {saving && <Loader2 className="size-3 animate-spin" aria-label="Saving" />}
       </label>
-      <span className="relative block">
-        <select
-          id={id}
-          value={other ? OTHER_DATE : (value ?? "")}
-          disabled={disabled || saving}
-          aria-invalid={error ? true : undefined}
-          onChange={(event) => {
-            const next = event.target.value;
-            setError(null);
-            if (next === OTHER_DATE) {
-              setOther(true);
-              setOtherDraft(value ?? "");
-              requestAnimationFrame(() => otherRef.current?.focus());
-            } else {
+      <DateSelect
+        id={id}
+        value={value}
+        dates={dates}
+        other={other}
+        disabled={disabled || saving}
+        invalid={!!error}
+        onSelect={(choice) => {
+          setError(null);
+          if (choice === OTHER_DATE) {
+            setOther(true);
+            setOtherDraft(value ?? "");
+            requestAnimationFrame(() => otherRef.current?.focus());
+          } else {
+            setOther(false);
+            save(choice);
+          }
+        }}
+      />
+      {other && (
+        <OtherDateInput
+          id={`${id}-other`}
+          inputRef={otherRef}
+          value={otherDraft}
+          disabled={saving}
+          onChange={setOtherDraft}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              save(otherDraft);
+            } else if (event.key === "Escape") {
+              event.stopPropagation(); // close the picker, not the drawer
               setOther(false);
-              save(next);
             }
           }}
-          className={`${inputClass} h-9 appearance-none pr-8 font-semibold`}
-        >
-          {!value && (
-            <option value="" disabled>
-              Pick a date
-            </option>
-          )}
-          {options.map((d) => (
-            <option key={d} value={d}>
-              {dayHeading(d)}
-            </option>
-          ))}
-          <option value={OTHER_DATE}>Other date…</option>
-        </select>
-        <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 size-4 -translate-y-1/2 text-muted" aria-hidden="true" />
-      </span>
-      {other && (
-        <div className="mt-2">
-          <div className="flex gap-2">
-            <label htmlFor={`${id}-other`} className="sr-only">
-              Other date
-            </label>
-            <input
-              ref={otherRef}
-              id={`${id}-other`}
-              type="date"
-              value={otherDraft}
-              disabled={saving}
-              onChange={(event) => setOtherDraft(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  save(otherDraft);
-                } else if (event.key === "Escape") {
-                  event.stopPropagation(); // close the picker, not the drawer
-                  setOther(false);
-                }
-              }}
-              className={`${inputClass} tabular h-9 font-semibold`}
-            />
+          action={
             <Button size="sm" className="h-9" disabled={!otherDraft} loading={saving} onClick={() => save(otherDraft)}>
               Use date
             </Button>
-          </div>
-          {otherDraft && (
-            <p className="mt-1 text-xs font-medium text-muted">
-              {dayHeading(otherDraft)}, {otherDraft.slice(0, 4)}
-            </p>
-          )}
-        </div>
+          }
+        />
       )}
       {error && (
         <p role="alert" className="mt-1 text-xs font-semibold text-red">

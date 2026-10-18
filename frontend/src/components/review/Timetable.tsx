@@ -76,7 +76,20 @@ function Row({
   const cancelled = meeting.review_state === "cancelled";
   const others = sharedWith(meeting, selection);
   const executives = [meeting.company_attendees.join(", "), formatLabel(meeting.format)].filter(Boolean).join(" · ");
-  const meta = [meeting.room, others.length ? `with ${others.join(", ")}` : ""].filter(Boolean).join(" · ");
+  // Stacked rows: "Ballroom C · with Avery Kim, Riley Chen", wrapping between names, never inside one.
+  const meta =
+    meeting.room || others.length ? (
+      <>
+        {meeting.room && <span className="whitespace-nowrap">{meeting.room}</span>}
+        {meeting.room && others.length > 0 && " · "}
+        {others.map((name, i) => (
+          <span key={name}>
+            <span className="whitespace-nowrap">{i === 0 ? `with ${name}` : name}</span>
+            {i < others.length - 1 && ", "}
+          </span>
+        ))}
+      </>
+    ) : null;
   const removing = meeting.removed.length ? `Removing from ${meeting.removed.map((a) => a.name).join(", ")}` : null;
 
   function onKeyDown(event: KeyboardEvent<HTMLTableRowElement>) {

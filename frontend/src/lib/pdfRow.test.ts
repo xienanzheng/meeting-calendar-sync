@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { findRowBox as find, type PdfTextItem, type RowBox } from "./pdfRow";
+import { bodyTextSize, findRowBox as find, type PdfTextItem, type RowBox } from "./pdfRow";
 
 /** The box rounded to 0.01pt, so float noise in the union doesn't fail an exact comparison. */
 function findRowBox(items: PdfTextItem[], company: string, ticker: string | null): RowBox | null {
@@ -69,5 +69,19 @@ describe("findRowBox", () => {
   it("matches a company split across several items on one line", () => {
     const items = [item("Keystone Valve", 260, 500, 60, 8), item("Corp (KSVC)", 322, 500, 48, 8), item("Lunch", 120, 500, 22, 8)];
     expect(findRowBox(items, "Keystone Valve Corp", null)).toEqual({ left: 120, right: 370, bottom: 498, top: 506.8 });
+  });
+});
+
+describe("bodyTextSize", () => {
+  it("is the size most of the page's text is set in, not the title's", () => {
+    // byCompany: one 14pt title and six 10pt lines.
+    expect(bodyTextSize(byCompany)).toBe(10);
+    const grid = [item("Schedule", 40, 760, 120, 18), ...Array.from({ length: 9 }, (_, i) => item(`cell ${i}`, 40, 500 - i * 10, 30, 8))];
+    expect(bodyTextSize(grid)).toBe(8);
+  });
+
+  it("ignores blank items and falls back to 10pt for a page without text", () => {
+    expect(bodyTextSize([item(" ", 0, 0, 3, 40), item("Lunch", 0, 0, 20, 9)])).toBe(9);
+    expect(bodyTextSize([])).toBe(10);
   });
 });

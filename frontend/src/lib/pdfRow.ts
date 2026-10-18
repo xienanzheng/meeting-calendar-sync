@@ -140,3 +140,16 @@ export function findRowBox(items: PdfTextItem[], company: string, ticker: string
     top: Math.max(...row.map((it) => baseline(it) + size(it) * ASCENT)),
   };
 }
+
+/**
+ * The font size (PDF points) most of the page's text is set in: the median over its text items, so a
+ * large title or a footnote doesn't move it. 10pt for a page without text. The viewer zooms to make
+ * this readable on screen.
+ */
+export function bodyTextSize(items: PdfTextItem[]): number {
+  const sizes = items
+    .filter((it) => it.str.trim())
+    .map(size)
+    .sort((a, b) => a - b);
+  return sizes.length ? sizes[Math.floor((sizes.length - 1) / 2)] : 10;
+}

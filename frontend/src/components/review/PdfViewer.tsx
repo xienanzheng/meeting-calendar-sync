@@ -10,7 +10,7 @@ import {
 // The legacy build carries polyfills for the newest JS the modern build assumes; Vite bundles the worker file.
 import workerUrl from "pdfjs-dist/legacy/build/pdf.worker.min.mjs?url";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { findRowBox, type PdfTextItem, type RowBox } from "../../lib/pdfRow";
+import { bodyTextSize, findRowBox, type PdfTextItem, type RowBox } from "../../lib/pdfRow";
 
 GlobalWorkerOptions.workerSrc = workerUrl;
 
@@ -20,15 +20,18 @@ export interface RowTarget {
   ticker: string | null;
 }
 
-// Zoom is relative to "fit width" (1); each step is 25%.
+// Zoom is relative to "fit width" (1); each step is 25%. "readable" (the default) sizes the page so its
+// body text renders at READABLE_PX; at fit width in the 400px panel an 8–9pt schedule is only 4–5px.
 const ZOOM_STEP = 1.25;
 const MIN_ZOOM = 0.64;
-const MAX_ZOOM = 3.05;
+const MAX_ZOOM = 4;
+const READABLE_PX = 10.5;
 const FRAME_PAD = 8; // the frame's p-2, both sides
 const HIT_PAD = 3; // CSS px around the row's text
 
 type Loaded = { url: string; doc: PDFDocumentProxy | null };
-type View = { url: string; page: number; viewport: PageViewport };
+type View = { url: string; page: number; viewport: PageViewport; fit: number };
+type Zoom = "readable" | number;
 type Search = { key: string; box: RowBox | null };
 
 function ToolButton({
@@ -60,10 +63,10 @@ function ToolButton({
 }
 
 /**
- * The source PDF drawn with pdf.js: one page on a canvas sized to the panel (sharp on high-DPI
- * screens), with the meeting's printed row highlighted and scrolled into view, and its own
- * page, zoom and open-in-a-new-tab controls. `url` is the file itself (versioned, no #page);
- * `openUrl` is what "Open the PDF in a new tab" opens.
+ * The source PDF drawn with pdf.js: one page on a canvas (sharp on high-DPI screens), opened at a
+ * readable zoom with the meeting's printed row highlighted and centred in the frame, and its own
+ * page, zoom, "Fit width" and open-in-a-new-tab controls. `url` is the file itself (versioned, no
+ * #page); `openUrl` is what "Open the PDF in a new tab" opens.
  */
 export default function PdfViewer({
   url,
@@ -95,13 +98,28 @@ export default function PdfViewer({
   const showKey = `${url}|${targetPage}|${target?.company ?? ""}|${target?.ticker ?? ""}`;
   const [shownFor, setShownFor] = useState(showKey);
   const [pageNum, setPageNum] = useState(targetPage);
-  const [zoom, setZoom] = useState(1);
+  const [zoom, setZoom] = useState<Zoom>("readable");
   if (shownFor !== showKey) {
     setShownFor(showKey);
     setPageNum(targetPage);
-    setZoom(1);
+    setZoom("readable");
   }
   const shownPage = clampPage(pageNum);
+
+  // Each page's text items, fetched once per document: the readable zoom and the row search both use them.
+  const texts = useRef<{ doc: PDFDocumentProxy | null; pages: Map<number, Promise<PdfTextItem[]>> }>({ doc: null, pages: new Map() });
+  function textOf(pdf: PDFDocumentProxy, n: number): Promise<PdfTextItem[]> {
+    if (texts.current.doc !== pdf) texts.current = { doc: pdf, pages: new Map() };
+    let items = texts.current.pages.get(n);
+    if (!items) {
+      items = pdf
+        .getPage(n)
+        .then((p) => p.getTextContent())
+        .then((content) => content.items.filter((it) => "str" in it) as PdfTextItem[]);
+      texts.current.pages.set(n, items);
+    }
+    return items;
+  }
 
   // Load the document once per URL (a revision or the revised PDF is a new URL).
   useEffect(() => {
@@ -128,18 +146,20 @@ export default function PdfViewer({
     return () => observer.disconnect();
   }, []);
 
-  // Draw the shown page at fit-width x zoom, at the screen's pixel density.
+  // Draw the shown page at fit-width x zoom (or readable), at the screen's pixel density.
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!doc || !canvas || width <= 0) return;
     let live = true;
     let task: RenderTask | null = null;
-    doc
-      .getPage(shownPage)
-      .then((pdfPage) => {
+    Promise.all([doc.getPage(shownPage), zoom === "readable" ? textOf(doc, shownPage) : null])
+      .then(([pdfPage, items]) => {
         if (!live) return;
         const fit = width / pdfPage.getViewport({ scale: 1 }).width;
-        const viewport = pdfPage.getViewport({ scale: fit * zoom });
+        const scale = items
+          ? Math.min(fit * MAX_ZOOM, Math.max(fit, READABLE_PX / bodyTextSize(items)))
+          : fit * (zoom as number);
+        const viewport = pdfPage.getViewport({ scale });
         const dpr = window.devicePixelRatio || 1;
         // Draw offscreen, then copy, so a zoom or page change never flashes an empty sheet.
         const scratch = document.createElement("canvas");
@@ -157,7 +177,7 @@ export default function PdfViewer({
           canvas.style.width = `${Math.floor(viewport.width)}px`;
           canvas.style.height = `${Math.floor(viewport.height)}px`;
           canvas.getContext("2d")?.drawImage(scratch, 0, 0);
-          setView({ url, page: shownPage, viewport });
+          setView({ url, page: shownPage, viewport, fit });
         });
       })
       .catch((error: unknown) => {
@@ -176,16 +196,10 @@ export default function PdfViewer({
   useEffect(() => {
     if (!doc || company === null || !searchKey) return;
     let live = true;
-    doc
-      .getPage(targetPage)
-      .then((pdfPage) => pdfPage.getTextContent())
-      .then(
-        (content) => {
-          const items = content.items.filter((it) => "str" in it) as PdfTextItem[];
-          if (live) setSearch({ key: searchKey, box: findRowBox(items, company, ticker) });
-        },
-        () => live && setSearch({ key: searchKey, box: null }),
-      );
+    textOf(doc, targetPage).then(
+      (items) => live && setSearch({ key: searchKey, box: findRowBox(items, company, ticker) }),
+      () => live && setSearch({ key: searchKey, box: null }),
+    );
     return () => {
       live = false;
     };
@@ -218,14 +232,17 @@ export default function PdfViewer({
       frame.scrollTo({ top: 0, left: 0 });
       return;
     }
-    // The row sits a third of the way down, and centred across when zoomed past the frame.
-    const top = hitTop + FRAME_PAD - (frame.clientHeight - hitHeight) / 3;
-    const left = hitLeft + FRAME_PAD - Math.max(FRAME_PAD, (frame.clientWidth - hitWidth) / 2);
+    // The row sits centred in the frame, both ways (as far as the page's edges allow).
+    const top = hitTop + FRAME_PAD - (frame.clientHeight - hitHeight) / 2;
+    const left = hitLeft + FRAME_PAD - (frame.clientWidth - hitWidth) / 2;
     frame.scrollTo({ top: Math.max(0, top), left: Math.max(0, left) });
   }, [drawnKey, hitLeft, hitTop, hitWidth, hitHeight]);
 
   const loading = !failed && !drawn;
   const percent = drawn ? `${Math.round(drawn.viewport.scale * 100)}%` : "—";
+  // Zoom steps start from what is on screen, so the first step from "readable" is one step from it.
+  const factor = drawn ? drawn.viewport.scale / drawn.fit : 1;
+  const fitted = Math.abs(factor - 1) < 0.01;
 
   return (
     <div>
@@ -245,16 +262,16 @@ export default function PdfViewer({
             <ChevronRight aria-hidden="true" />
           </ToolButton>
           <span className="mx-1 h-4 w-px shrink-0 bg-line-strong" aria-hidden="true" />
-          <ToolButton label="Zoom out" disabled={!doc || zoom <= MIN_ZOOM} onClick={() => setZoom((z) => z / ZOOM_STEP)}>
+          <ToolButton label="Zoom out" disabled={!drawn || factor <= MIN_ZOOM} onClick={() => setZoom(factor / ZOOM_STEP)}>
             <ZoomOut aria-hidden="true" />
           </ToolButton>
           <span className="tabular w-9 text-center text-[11px] font-semibold text-muted">{percent}</span>
-          <ToolButton label="Zoom in" disabled={!doc || zoom >= MAX_ZOOM} onClick={() => setZoom((z) => z * ZOOM_STEP)}>
+          <ToolButton label="Zoom in" disabled={!drawn || factor >= MAX_ZOOM - 0.01} onClick={() => setZoom(Math.min(MAX_ZOOM, factor * ZOOM_STEP))}>
             <ZoomIn aria-hidden="true" />
           </ToolButton>
           <button
             type="button"
-            aria-pressed={zoom === 1}
+            aria-pressed={!!drawn && fitted}
             disabled={!doc}
             onClick={() => setZoom(1)}
             className="inline-flex h-7 shrink-0 items-center gap-1 rounded-[5px] px-1.5 text-xs font-semibold text-ink transition-colors duration-150 ease-out enabled:hover:bg-white disabled:cursor-not-allowed disabled:text-stamp enabled:aria-pressed:bg-white enabled:aria-pressed:text-navy"

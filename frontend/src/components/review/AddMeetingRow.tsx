@@ -3,15 +3,20 @@ import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { addMeeting, errorMessage, type Analyst, type ConferenceDetail } from "../../api";
 import { Button } from "../Button";
 import { fieldLabelClass, inputClass } from "../fields";
+import { DateSelect, OTHER_DATE, OtherDateInput } from "./DateSelect";
+
+type TimeField = "start" | "end";
 
 /**
  * "Add meeting" under the timetable: collapsed to one quiet button, it opens an inline form for a
- * meeting the PDF missed. The new meeting starts as a draft like any other.
+ * meeting the PDF missed. The new meeting starts as a draft like any other. Dates and times read as the
+ * source panel's do: a pick from the conference's days, and times typed like the table prints them.
  */
 export function AddMeetingRow({
   cid,
   knownIds,
   roster,
+  dates,
   defaultDate,
   defaultColleague,
   startOpen = false,
@@ -22,6 +27,8 @@ export function AddMeetingRow({
   /** The meetings on screen before the add, to find the one the server created. */
   knownIds: number[];
   roster: Analyst[] | null;
+  /** The conference's days for the date select (`conferenceDates`). */
+  dates: string[];
   defaultDate: string | null;
   defaultColleague: number | null;
   startOpen?: boolean;
@@ -33,13 +40,18 @@ export function AddMeetingRow({
   const [open, setOpen] = useState(startOpen);
   const [company, setCompany] = useState("");
   const [date, setDate] = useState(defaultDate ?? "");
+  const [otherDate, setOtherDate] = useState(false);
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
   const [room, setRoom] = useState("");
   const [ids, setIds] = useState<number[]>(defaultColleague ? [defaultColleague] : []);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // The server's "Couldn't read the time '2:3x'…" belongs under the field that holds '2:3x'.
+  const [timeError, setTimeError] = useState<{ field: TimeField; message: string } | null>(null);
   const companyRef = useRef<HTMLInputElement>(null);
+  const otherRef = useRef<HTMLInputElement>(null);
+  const timeRefs = { start: useRef<HTMLInputElement>(null), end: useRef<HTMLInputElement>(null) };
   const toggleRef = useRef<HTMLButtonElement>(null);
   const opened = useRef(false);
 
@@ -51,8 +63,10 @@ export function AddMeetingRow({
   function expand() {
     opened.current = true;
     setDate(defaultDate ?? "");
+    setOtherDate(false);
     setIds(defaultColleague ? [defaultColleague] : []);
     setError(null);
+    setTimeError(null);
     setOpen(true);
   }
 
@@ -61,7 +75,18 @@ export function AddMeetingRow({
     setStart("");
     setEnd("");
     setRoom("");
+    setOtherDate(false);
     setError(null);
+    setTimeError(null);
+  }
+
+  /** Which time field a server message is about, from the value it quotes. */
+  function timeFieldOf(message: string): TimeField | null {
+    const quoted = /Couldn't read the time '(.*?)'/.exec(message)?.[1];
+    if (quoted === undefined) return null;
+    if (quoted === start.trim()) return "start";
+    if (quoted === end.trim()) return "end";
+    return null;
   }
 
   async function submit(event: FormEvent) {
@@ -73,14 +98,15 @@ export function AddMeetingRow({
     }
     setSaving(true);
     setError(null);
+    setTimeError(null);
     try {
       const before = new Set(knownIds);
       const detail = await run(
         addMeeting(cid, {
           company: company.trim(),
           date: date || null,
-          start: start || null,
-          end: end || null,
+          start: start.trim() || null,
+          end: end.trim() || null,
           room: room.trim(),
           attendee_ids: ids,
         }),
@@ -89,7 +115,14 @@ export function AddMeetingRow({
       reset();
       setOpen(false);
     } catch (err) {
-      setError(errorMessage(err));
+      const message = errorMessage(err);
+      const field = timeFieldOf(message);
+      if (field) {
+        setTimeError({ field, message });
+        timeRefs[field].current?.focus();
+      } else {
+        setError(message);
+      }
     } finally {
       setSaving(false);
     }
@@ -129,18 +162,57 @@ export function AddMeetingRow({
           <span className={fieldLabelClass}>Room</span>
           <input value={room} onChange={(e) => setRoom(e.target.value)} placeholder="e.g. Salon 4" className={`${inputClass} h-9 font-semibold`} />
         </label>
-        <label className="col-span-2">
-          <span className={fieldLabelClass}>Date</span>
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={`${inputClass} tabular h-9 font-semibold`} />
-        </label>
-        <label>
-          <span className={fieldLabelClass}>Start</span>
-          <input type="time" value={start} onChange={(e) => setStart(e.target.value)} className={`${inputClass} tabular h-9 font-semibold`} />
-        </label>
-        <label>
-          <span className={fieldLabelClass}>End</span>
-          <input type="time" value={end} onChange={(e) => setEnd(e.target.value)} className={`${inputClass} tabular h-9 font-semibold`} />
-        </label>
+        <div className="col-span-2">
+          <label htmlFor={`${id}-date`} className={fieldLabelClass}>
+            Date
+          </label>
+          <DateSelect
+            id={`${id}-date`}
+            value={date || null}
+            dates={dates}
+            other={otherDate}
+            onSelect={(choice) => {
+              if (choice === OTHER_DATE) {
+                setOtherDate(true);
+                requestAnimationFrame(() => otherRef.current?.focus());
+              } else {
+                setOtherDate(false);
+                setDate(choice);
+              }
+            }}
+          />
+          {otherDate && <OtherDateInput id={`${id}-other`} inputRef={otherRef} value={date} onChange={setDate} />}
+        </div>
+        {(["start", "end"] as const).map((field) => {
+          const value = field === "start" ? start : end;
+          const problem = timeError?.field === field ? timeError.message : null;
+          return (
+            <div key={field} className="sm:col-span-2">
+              <label htmlFor={`${id}-${field}`} className={fieldLabelClass}>
+                {field === "start" ? "Start" : "End"}
+              </label>
+              <input
+                ref={timeRefs[field]}
+                id={`${id}-${field}`}
+                value={value}
+                autoComplete="off"
+                placeholder={field === "start" ? "e.g. 2:30 PM" : "Optional, e.g. 3:15 PM"}
+                aria-invalid={problem ? true : undefined}
+                aria-describedby={problem ? `${id}-${field}-error` : undefined}
+                onChange={(e) => {
+                  (field === "start" ? setStart : setEnd)(e.target.value);
+                  if (timeError?.field === field) setTimeError(null);
+                }}
+                className={`${inputClass} tabular h-9 font-semibold`}
+              />
+              {problem && (
+                <p id={`${id}-${field}-error`} role="alert" className="mt-1 text-xs font-semibold text-red">
+                  {problem}
+                </p>
+              )}
+            </div>
+          );
+        })}
       </div>
       <fieldset className="mt-3">
         <legend className={fieldLabelClass}>Colleagues</legend>

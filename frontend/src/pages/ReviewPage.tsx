@@ -34,6 +34,7 @@ import { viewerZone } from "../lib/format";
 import { defaultAccepted, toggleAccepted } from "../lib/revision";
 import {
   colleaguesIn,
+  conferenceDates,
   filterMeetings,
   groupByDate,
   selectionKey,
@@ -70,10 +71,10 @@ const EMPTY_FILTER: Record<StatusFilter, string> = {
 /** The conference totals as a compact two-line block, in step with the context and sync status beside it. */
 function Totals({ counts }: { counts: Counts }) {
   const num = "tabular font-heading font-bold";
-  const big = "text-[15px] max-[1280px]:text-[14px]";
+  const big = "text-[15px] max-[1366px]:text-[14px]";
   return (
     <p className="whitespace-nowrap leading-tight max-[1200px]:hidden">
-      <span className="block text-[13px] font-semibold text-white max-[1280px]:text-xs">
+      <span className="block text-[13px] font-semibold text-white max-[1366px]:text-xs">
         <span className={`${num} ${big}`}>{counts.total}</span> meetings ·{" "}
         <span className={`${num} ${big} ${counts.needs_attention > 0 ? "text-red-on-navy" : ""}`}>{counts.needs_attention}</span>{" "}
         need attention
@@ -407,9 +408,9 @@ function Review({ id }: { id: number }) {
               variant="beige"
               loading={verifyingAll}
               onClick={verifyAll}
-              icon={<CheckCheck className="size-4" aria-hidden="true" />}
+              icon={<CheckCheck className="size-4 max-[1280px]:hidden max-sm:block" aria-hidden="true" />}
               title="Verifies every draft without problems in the current view; they go straight to calendars"
-              className="max-[1280px]:h-8 max-[1280px]:gap-1.5 max-[1280px]:px-3 max-[1280px]:text-[13px]"
+              className="max-[1366px]:h-8 max-[1366px]:gap-1.5 max-[1366px]:px-3 max-[1366px]:text-[13px]"
             >
               <span className="max-[420px]:hidden">Verify all ready ({readyIds.length})</span>
               <span className="min-[420px]:hidden">Verify ready ({readyIds.length})</span>
@@ -514,6 +515,7 @@ function Review({ id }: { id: number }) {
                   cid={id}
                   knownIds={meetings.map((m) => m.id)}
                   roster={roster}
+                  dates={conferenceDates(detail)}
                   defaultDate={detail.first_date}
                   defaultColleague={selection.kind === "colleague" ? selection.id : null}
                   startOpen={meetings.length === 0}
