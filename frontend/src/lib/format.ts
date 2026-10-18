@@ -93,3 +93,24 @@ export function fileSize(bytes: number): string {
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
+
+const FORMAT_LABELS: Record<string, string> = { one_on_one: "1x1", group: "Group", meal: "Meal", other: "Meeting" };
+
+/** "one_on_one" -> "1x1"; the same labels the calendar entries use. */
+export function formatLabel(format: string): string {
+  return FORMAT_LABELS[format] ?? format;
+}
+
+/** "2026-11-11" -> "Wed, Nov 11"; the raw text when it isn't a date. */
+export function shortDate(isoDate: string): string {
+  const day = parseDate(isoDate);
+  return day ? day.toFormat("ccc, LLL d") : isoDate;
+}
+
+/** "Avery Kim" -> "AK", "Chris" -> "CH"; for the colleague rail avatars. */
+export function initials(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return "?";
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  return (words[0][0] + words[words.length - 1][0]).toUpperCase();
+}

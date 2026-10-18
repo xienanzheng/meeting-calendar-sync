@@ -15,19 +15,11 @@ import { ErrorNote } from "../components/ErrorNote";
 import { Shell } from "../components/Shell";
 import { useConfig } from "../lib/config";
 import { dateRange, fileSize } from "../lib/format";
+import { checkPdf, MAX_UPLOAD_MB } from "../lib/upload";
 
-const MAX_MB = 20;
+const MAX_MB = MAX_UPLOAD_MB;
 
 type Loadable<T> = { state: "loading" } | { state: "error"; message: string } | { state: "ready"; data: T };
-
-function checkFile(file: File): string | null {
-  if (!file.name.toLowerCase().endsWith(".pdf") && file.type !== "application/pdf") {
-    return `${file.name} isn't a PDF. Choose the broker's schedule as a .pdf file.`;
-  }
-  if (file.size > MAX_MB * 1024 * 1024) return `${file.name} is larger than ${MAX_MB} MB. Choose a smaller PDF.`;
-  if (file.size === 0) return `${file.name} is empty. Choose another PDF.`;
-  return null;
-}
 
 function ElapsedClock({ since }: { since: number }) {
   const [now, setNow] = useState(() => Date.now());
@@ -55,6 +47,7 @@ function UploadCard() {
   const [defaultIds, setDefaultIds] = useState<number[]>([]);
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [extractError, setExtractError] = useState<string | null>(null);
+  const [asNew, setAsNew] = useState(false);
   const extracting = startedAt !== null;
 
   useEffect(() => {
@@ -70,7 +63,7 @@ function UploadCard() {
 
   const pick = useCallback((chosen: File | undefined | null) => {
     if (!chosen) return;
-    const problem = checkFile(chosen);
+    const problem = checkPdf(chosen);
     setFileError(problem);
     setExtractError(null);
     setFile(problem ? null : chosen);
@@ -96,7 +89,8 @@ function UploadCard() {
     setExtractError(null);
     setStartedAt(Date.now());
     try {
-      const detail = await uploadConference(file, defaultIds);
+      // By default the server files a re-sent broker PDF as a revision of its conference; "new" opts out.
+      const detail = await uploadConference(file, defaultIds, asNew ? "new" : undefined);
       if (mounted.current) navigate(`/conferences/${detail.id}`, { state: { skippedItems: detail.skipped_items } });
     } catch (error) {
       if (mounted.current) setExtractError(errorMessage(error));
@@ -243,6 +237,22 @@ function UploadCard() {
           {extracting ? "Extracting…" : "Extract meetings"}
         </Button>
         {!file && !extracting && <span className="text-[13px] text-muted">Choose a PDF first.</span>}
+        <label
+          title="When this PDF is a revised schedule for a conference already here, it is normally reviewed as a revision of it."
+          className="ml-auto inline-flex cursor-pointer select-none items-center gap-2 text-[13px] font-medium text-ink has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50">
+          <input
+            type="checkbox"
+            checked={asNew}
+            disabled={extracting}
+            onChange={(event) => setAsNew(event.target.checked)}
+            className="size-4 rounded-sm accent-navy"
+          />
+          Upload as a new conference instead
+          <span className="sr-only">
+            {" "}
+            (otherwise a revised PDF of a conference already here is reviewed as a revision)
+          </span>
+        </label>
       </div>
 
       {extracting && startedAt !== null && (
@@ -409,8 +419,8 @@ export function ConferencesPage() {
       <div className="mx-auto max-w-[1100px] px-7 pb-16 pt-9">
         <h1 className="text-[28px] font-bold leading-tight text-navy">Conferences</h1>
         <p className="mt-1.5 text-[15px] text-muted">
-          Upload a broker's schedule, check each meeting against the PDF, then send verified meetings to colleagues'
-          calendars.
+          Upload a broker's schedule and check each meeting against the PDF. Verifying a meeting puts it on the right
+          colleagues' calendars.
         </p>
         <div className="mt-7">
           <UploadCard />

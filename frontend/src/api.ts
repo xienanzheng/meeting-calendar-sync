@@ -71,12 +71,65 @@ export interface ConferenceSummary {
   counts: Counts;
 }
 
+/** What the server's same-request calendar sync did after a change (spec §15.1). */
+export interface SyncSummary {
+  ok: number;
+  failed: number;
+  message: string;
+}
+
+export type FieldValue = string | string[] | null;
+
+export interface FieldChange {
+  field: string; // date | start | end | room | format | ticker | company | company_attendees | firm_attendees
+  before: FieldValue;
+  after: FieldValue;
+}
+
+/** A meeting row as the broker's revised PDF prints it. */
+export interface ProposedMeeting {
+  date: string | null;
+  start: string | null;
+  end: string | null;
+  room: string | null;
+  company: string;
+  ticker: string | null;
+  format: MeetingFormat;
+  firm_attendees: string[];
+  company_attendees: string[];
+  page: number | null;
+}
+
+export type RevisionChangeKind = "changed" | "added" | "removed";
+
+export interface RevisionChange {
+  id: string;
+  kind: RevisionChangeKind;
+  meeting_id: number | null;
+  company: string;
+  summary: string;
+  fields: FieldChange[];
+  new: ProposedMeeting | null;
+}
+
+export interface Revision {
+  id: number;
+  number: number;
+  pdf_filename: string;
+  created_at: string;
+  changes: RevisionChange[];
+  unchanged_count: number;
+}
+
 export interface ConferenceDetail extends ConferenceSummary {
   schedule_for: string;
   pdf_filename: string;
   extractor: string;
   meetings: Meeting[];
   skipped_items: number;
+  last_sync: SyncSummary | null;
+  pending_revision: Revision | null;
+  revision_number: number;
 }
 
 export interface Analyst {
@@ -241,16 +294,34 @@ export const graphStatus = () => request<GraphStatus>("/api/graph/status");
 // ---------- conferences ----------
 export const listConferences = () => request<ConferenceSummary[]>("/api/conferences");
 export const getConference = (id: number) => request<ConferenceDetail>(`/api/conferences/${id}`);
-export const uploadConference = (file: File, defaultIds: number[]) => {
+/** `mode` "auto" (the server default) treats a matching upload as a revision; "new" always makes a new conference. */
+export const uploadConference = (file: File, defaultIds: number[], mode?: "auto" | "new") => {
   const form = new FormData();
   form.append("file", file);
   form.append("default_attendee_ids", defaultIds.join(","));
+  if (mode) form.append("mode", mode);
   return request<ConferenceDetail>("/api/conferences", { method: "POST", body: form });
 };
 export const patchConference = (id: number, body: ConferenceUpdate) =>
   request<ConferenceDetail>(`/api/conferences/${id}`, json("PATCH", body));
 export const deleteConference = (id: number) => request<void>(`/api/conferences/${id}`, { method: "DELETE" });
 export const pdfUrl = (cid: number, page?: number | null) => `/api/conferences/${cid}/pdf${page ? `#page=${page}` : ""}`;
+export const icsUrl = (cid: number, analystId: number) => `/api/conferences/${cid}/ics/${analystId}`;
+export const icsZipUrl = (cid: number) => `/api/conferences/${cid}/ics.zip`;
+
+// ---------- broker revisions ----------
+export const uploadRevision = (cid: number, file: File) => {
+  const form = new FormData();
+  form.append("file", file);
+  return request<ConferenceDetail>(`/api/conferences/${cid}/revisions`, { method: "POST", body: form });
+};
+/** Applies the accepted change ids; null applies every change. Calendars sync in the same request. */
+export const applyRevision = (rid: number, accepted: string[] | null) =>
+  request<ConferenceDetail>(`/api/revisions/${rid}/apply`, json("POST", { accepted }));
+export const discardRevision = (rid: number) => request<ConferenceDetail>(`/api/revisions/${rid}/discard`, { method: "POST" });
+export const revisionAsNewConference = (rid: number) =>
+  request<ConferenceDetail>(`/api/revisions/${rid}/as-new-conference`, { method: "POST" });
+export const revisionPdfUrl = (rid: number, page?: number | null) => `/api/revisions/${rid}/pdf${page ? `#page=${page}` : ""}`;
 
 // ---------- meetings ----------
 export const addMeeting = (cid: number, body: MeetingCreate) =>
@@ -267,6 +338,8 @@ export const confirmReady = (cid: number, meetingIds?: number[]) =>
 // ---------- send ----------
 export const sendPreview = (cid: number) => request<SendResult>(`/api/conferences/${cid}/send?dry_run=true`, { method: "POST" });
 export const sendNow = (cid: number) => request<SendResult>(`/api/conferences/${cid}/send?dry_run=false`, { method: "POST" });
+/** Verifying syncs calendars on its own; this is the Retry path after a failed sync. */
+export const retrySync = (cid: number) => sendNow(cid);
 
 // ---------- roster ----------
 export const listRoster = () => request<Analyst[]>("/api/roster");

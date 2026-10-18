@@ -162,3 +162,27 @@ export function sharedWith(meeting: Meeting, selection: Selection): string[] {
 export function sendLabel(counts: Pick<Counts, "pending_actions">): string {
   return counts.pending_actions > 0 ? `Send ${counts.pending_actions} to calendars` : "Nothing to send";
 }
+
+/** "all", "c:12", "u:Chris Wong": one string per rail entry, for the select and for comparing. */
+export function selectionKey(selection: Selection): string {
+  switch (selection.kind) {
+    case "all":
+      return "all";
+    case "colleague":
+      return `c:${selection.id}`;
+    case "unmatched":
+      return `u:${selection.name}`;
+  }
+}
+
+/** The inverse of `selectionKey`. */
+export function selectionFromKey(key: string): Selection {
+  if (key.startsWith("c:")) return { kind: "colleague", id: Number(key.slice(2)) };
+  if (key.startsWith("u:")) return { kind: "unmatched", name: key.slice(2) };
+  return { kind: "all" };
+}
+
+/** True when some colleague's calendar already holds this meeting, so deleting it cancels instead. */
+export function isOnCalendars(meeting: Meeting): boolean {
+  return touched(meeting).some((a) => a.sync === "sent" || a.sync === "changed" || a.sync === "failed");
+}

@@ -10,6 +10,8 @@ export interface ShellProps {
   context?: ReactNode;
   /** Right-most controls in the bar, e.g. the beige "Send N to calendars" button. */
   actions?: ReactNode;
+  /** False for pages whose columns scroll on their own (Review): no page scroll, no reserved scrollbar gutter. */
+  scroll?: boolean;
   children?: ReactNode;
 }
 
@@ -74,7 +76,7 @@ function ConfigBadges({ config, error }: { config: AppConfig | null; error: stri
   );
 }
 
-export function Shell({ context, actions, children }: ShellProps) {
+export function Shell({ context, actions, scroll = true, children }: ShellProps) {
   const { config, error } = useConfig();
   const { pathname } = useLocation();
   const inConferences = pathname === "/" || pathname.startsWith("/conferences/");
@@ -87,18 +89,31 @@ export function Shell({ context, actions, children }: ShellProps) {
       >
         Skip to content
       </a>
-      <header className="on-navy flex h-16 shrink-0 items-center gap-6 bg-navy px-7 text-white">
+      {/* With page context (the Review page) the bar sheds parts as the window narrows, so the conference
+          keeps its room: the product name below 1680px, the wordmark text below 1100px, and below 1024px
+          the context drops to a second row. */}
+      <header
+        className={`on-navy flex min-h-16 shrink-0 items-center gap-x-6 gap-y-1.5 bg-navy px-7 text-white ${context ? "max-lg:flex-wrap max-lg:px-4 max-lg:py-2.5" : ""}`}
+      >
         <div className="flex shrink-0 items-center gap-5">
           <Link to="/" className="flex items-center gap-3 rounded-sm">
             <WoodlineMark className="h-[15px] w-10" />
-            <span className="font-wordmark text-[15px] uppercase tracking-[0.25em]">Woodline</span>
+            <span
+              className={`font-wordmark text-[15px] uppercase tracking-[0.25em] ${context ? "max-[1100px]:sr-only" : ""}`}
+            >
+              Woodline
+            </span>
           </Link>
-          <span className="border-l border-white/25 pl-5 font-heading text-[15px] font-semibold text-white/85">
+          <span
+            className={`border-l border-white/25 pl-5 font-heading text-[15px] font-semibold text-white/85 ${context ? "max-[1679px]:hidden" : ""}`}
+          >
             Meeting Calendar Sync
           </span>
         </div>
-        <div className="flex min-w-0 flex-1 items-center gap-6">{context}</div>
-        <nav aria-label="Main" className="flex shrink-0 items-center gap-5 text-sm font-semibold">
+        <div className={`flex min-w-0 flex-1 items-center gap-3 ${context ? "max-lg:order-last max-lg:basis-full" : ""}`}>
+          {context}
+        </div>
+        <nav aria-label="Main" className="ml-auto flex shrink-0 items-center gap-5 text-sm font-semibold">
           <NavLink to="/" end className={({ isActive }) => navClass(isActive || inConferences)}>
             Conferences
           </NavLink>
@@ -106,8 +121,9 @@ export function Shell({ context, actions, children }: ShellProps) {
             Roster
           </NavLink>
         </nav>
-        {/* With page context in the bar, the badges give way below 2xl so the context keeps its room. */}
-        <div className={`hidden shrink-0 items-center gap-2 ${context ? "2xl:flex" : "xl:flex"}`}>
+        {/* With page context in the bar the badges only fit on very wide screens; the Review page's sync
+            status names the calendar route itself, so nothing is lost when they give way. */}
+        <div className={`hidden shrink-0 items-center gap-2 ${context ? "min-[2200px]:flex" : "xl:flex"}`}>
           <ConfigBadges config={config} error={error} />
         </div>
         {actions && <div className="flex shrink-0 items-center gap-3">{actions}</div>}
@@ -121,7 +137,11 @@ export function Shell({ context, actions, children }: ShellProps) {
           Hosted demo — data resets when the server sleeps. Use sample schedules.
         </div>
       )}
-      <main id="main" tabIndex={-1} className="relative min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable] focus:outline-none">
+      <main
+        id="main"
+        tabIndex={-1}
+        className={`relative min-h-0 flex-1 focus:outline-none ${scroll ? "overflow-y-auto [scrollbar-gutter:stable]" : "overflow-hidden"}`}
+      >
         {children}
       </main>
     </div>

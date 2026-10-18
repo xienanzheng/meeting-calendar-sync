@@ -1,4 +1,4 @@
-import { Loader2, Pencil, UserPlus } from "lucide-react";
+import { Loader2, UserPlus } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import {
   ApiError,
@@ -11,8 +11,10 @@ import {
   type AnalystUpdate,
 } from "../api";
 import { Button, ConfirmButton } from "../components/Button";
+import { EditableCell } from "../components/EditableCell";
 import { ErrorNote } from "../components/ErrorNote";
 import { Shell } from "../components/Shell";
+import { inputClass } from "../components/fields";
 
 type RowError = { message: string; conflict: boolean };
 
@@ -34,147 +36,6 @@ function checkName(value: string): string | null {
 
 function checkEmail(value: string): string | null {
   return EMAIL.test(value.trim()) ? null : "Enter an email address like name@example.com.";
-}
-
-const inputClass =
-  "w-full rounded-md border border-line bg-white px-2.5 py-1.5 text-sm font-medium text-ink transition-colors duration-150 " +
-  "hover:border-line-strong focus:border-navy focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-navy/25 " +
-  "disabled:cursor-not-allowed disabled:opacity-60 aria-[invalid=true]:border-red";
-
-/**
- * A table cell that reads as text and becomes an input on click. Enter or blur saves, Esc cancels.
- * `onSave` rejects with an ApiError to keep the cell open and show the server's message.
- */
-function EditableCell({
-  value,
-  label,
-  placeholder,
-  type = "text",
-  muted = false,
-  validate,
-  onSave,
-}: {
-  value: string;
-  label: string;
-  placeholder: string;
-  type?: "text" | "email";
-  muted?: boolean;
-  validate?: (value: string) => string | null;
-  onSave: (value: string) => Promise<void>;
-}) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(value);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const busy = useRef(false);
-  const skipBlur = useRef(false); // set once the edit is finished, so the unmount blur doesn't save again
-  const failedDraft = useRef<string | null>(null); // a value the server just refused; blur doesn't resend it
-  const viewRef = useRef<HTMLButtonElement>(null);
-  const returnFocus = useRef(false);
-
-  useEffect(() => {
-    if (!editing && returnFocus.current) {
-      returnFocus.current = false;
-      viewRef.current?.focus();
-    }
-  }, [editing]);
-
-  function open() {
-    skipBlur.current = false;
-    failedDraft.current = null;
-    setDraft(value);
-    setError(null);
-    setEditing(true);
-  }
-
-  function close(keyboard: boolean) {
-    skipBlur.current = true;
-    returnFocus.current = keyboard;
-    setError(null);
-    setEditing(false);
-  }
-
-  async function commit(keyboard: boolean) {
-    if (busy.current) return;
-    if (draft.trim() === value.trim()) return close(keyboard);
-    const problem = validate?.(draft) ?? null;
-    if (problem) {
-      setError(problem);
-      return;
-    }
-    busy.current = true;
-    setSaving(true);
-    try {
-      await onSave(draft);
-      close(keyboard);
-    } catch (err) {
-      failedDraft.current = draft;
-      setError(errorMessage(err));
-    } finally {
-      busy.current = false;
-      setSaving(false);
-    }
-  }
-
-  if (!editing) {
-    return (
-      <button
-        ref={viewRef}
-        type="button"
-        onClick={open}
-        className="group flex w-full min-w-0 items-center gap-2 rounded-md px-2.5 py-1.5 text-left transition-colors duration-150 hover:bg-cream"
-      >
-        <span className="sr-only">Edit {label}: </span>
-        <span className={`truncate ${value ? (muted ? "text-muted" : "text-ink") : "text-muted"}`}>{value || placeholder}</span>
-        <Pencil
-          className="ml-auto size-3.5 shrink-0 text-muted opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100"
-          aria-hidden="true"
-        />
-      </button>
-    );
-  }
-
-  return (
-    <div>
-      <div className="relative">
-        <input
-          autoFocus
-          type={type}
-          value={draft}
-          readOnly={saving}
-          aria-busy={saving || undefined}
-          aria-label={label}
-          aria-invalid={error ? true : undefined}
-          placeholder={placeholder}
-          onChange={(event) => {
-            setDraft(event.target.value);
-            setError(null);
-          }}
-          onBlur={() => {
-            if (!skipBlur.current && draft !== failedDraft.current) commit(false);
-          }}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              event.preventDefault();
-              commit(true);
-            } else if (event.key === "Escape") {
-              event.preventDefault();
-              close(true);
-            }
-          }}
-          className={`${inputClass} pr-8`}
-        />
-        {saving && (
-          <Loader2 className="absolute right-2.5 top-1/2 size-3.5 -translate-y-1/2 animate-spin text-muted" aria-hidden="true" />
-        )}
-      </div>
-      {error && (
-        <p role="alert" className="mt-1 text-xs font-semibold text-red">
-          {error}
-        </p>
-      )}
-    </div>
-  );
 }
 
 function ActiveSwitch({ analyst, busy, onToggle }: { analyst: Analyst; busy: boolean; onToggle: () => void }) {

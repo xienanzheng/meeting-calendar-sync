@@ -30,9 +30,14 @@
   --color-amber: #8a5a12;
   --color-amber-bg: #fbf3e4;
   --color-amber-line: #ecd3a4;
+  --color-amber-on-navy: #f2c879; /* warn dot on a navy (selected) rail row */
+  --color-skeleton: #ebe7cf; /* loading placeholders, no motion */
   --font-sans: "Manrope Variable", ui-sans-serif, system-ui, sans-serif;
   --font-heading: "Figtree Variable", "Manrope Variable", ui-sans-serif, sans-serif;
   --font-wordmark: "Libre Baskerville", Georgia, serif;
+  /* Review page: the colleague rail turns into a select at <=900px, the source panel into a drawer at <=1280px. */
+  --breakpoint-rail: 56.3125rem; /* 901px */
+  --breakpoint-panel: 80.0625rem; /* 1281px */
 }
 
 /* Base rules live in the base layer so utilities (e.g. a beige focus ring on navy) can override them. */
@@ -65,6 +70,73 @@
 
 .tabular { font-variant-numeric: tabular-nums; }
 
+/* Popover API panels: drop the UA centring; Popover.tsx sets top/left under the trigger. */
+.popover-panel[popover] { position: fixed; inset: auto; margin: 0; }
+
+/* ---------- Review timetable ----------
+   Table rows at full width; below 680px of itinerary column (or a <=900px window) each row stacks as
+   time | company / room · shared with | stamp. Unlayered, so these beat the table-mode utilities. */
+.itinerary { container: itinerary / inline-size; }
+.tt-label { display: none; }
+
+@container itinerary (width < 42.5rem) {
+  .tt-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .tt-table, .tt-table tbody { display: block; }
+  .tt-table colgroup { display: none; }
+  .tt-row {
+    display: grid;
+    grid-template-columns: 5.25rem auto minmax(0, 1fr) auto;
+    grid-template-areas: "time company company status" "time room shared status";
+    column-gap: 0.75rem;
+    row-gap: 0.25rem;
+    align-items: start;
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--color-rule);
+  }
+  .tt-row:last-child { border-bottom: 0; }
+  .tt-row > td { display: block; padding: 0; border: 0; }
+  .tt-time { grid-area: time; }
+  .tt-company { grid-area: company; }
+  .tt-room { grid-area: room; font-size: 13px; color: var(--color-muted); }
+  .tt-shared { grid-area: shared; font-size: 13px; margin-left: -0.5rem; }
+  .tt-shared[data-empty] { visibility: hidden; }
+  .tt-room[data-empty] + .tt-shared .tt-dot { display: none; }
+  .tt-status { grid-area: status; }
+  .tt-label { display: inline; }
+}
+@media (width < 56.3125rem) {
+  .tt-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .tt-table, .tt-table tbody { display: block; }
+  .tt-table colgroup { display: none; }
+  .tt-row {
+    display: grid;
+    grid-template-columns: 5.25rem auto minmax(0, 1fr) auto;
+    grid-template-areas: "time company company status" "time room shared status";
+    column-gap: 0.75rem;
+    row-gap: 0.25rem;
+    align-items: start;
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--color-rule);
+  }
+  .tt-row:last-child { border-bottom: 0; }
+  .tt-row > td { display: block; padding: 0; border: 0; }
+  .tt-time { grid-area: time; }
+  .tt-company { grid-area: company; }
+  .tt-room { grid-area: room; font-size: 13px; color: var(--color-muted); }
+  .tt-shared { grid-area: shared; font-size: 13px; margin-left: -0.5rem; }
+  .tt-shared[data-empty] { visibility: hidden; }
+  .tt-room[data-empty] + .tt-shared .tt-dot { display: none; }
+  .tt-status { grid-area: status; }
+  .tt-label { display: inline; }
+}
+
+/* The revision strip arriving under the bar: one short ease-out. */
+@keyframes mcs-reveal {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: none; }
+}
+.reveal { animation: mcs-reveal 180ms cubic-bezier(0.16, 1, 0.3, 1); }
+
 /* The one authored motion: the extraction progress bar sweeping while Claude reads the PDF. */
 @keyframes mcs-sweep {
   from { transform: translateX(-100%); }
@@ -74,5 +146,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .progress-sweep { animation-duration: 4s; }
+  .reveal { animation: none; }
   *, ::before, ::after { transition-duration: 0.01ms !important; }
 }

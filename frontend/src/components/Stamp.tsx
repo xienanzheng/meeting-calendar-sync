@@ -2,7 +2,8 @@ import { Check } from "lucide-react";
 import type { Meeting } from "../api";
 import { stampFor, type StampTone } from "../lib/review";
 
-// Tilted, letter-spaced stamps; DRAFT and CANCELLED lie flat.
+// Tilted, letter-spaced stamps; DRAFT and CANCELLED lie flat. Every stamp sits on a white chip so it keeps
+// its contrast on the selected-row tint (green on #eef0f8 alone is only 4.5:1).
 const TONES: Record<StampTone, string> = {
   navy: "-rotate-3 border-navy text-navy",
   green: "-rotate-3 border-green text-green",
@@ -16,7 +17,7 @@ const TONES: Record<StampTone, string> = {
 export function StampMark({ label, tone }: { label: string; tone: StampTone }) {
   return (
     <span
-      className={`inline-flex items-center gap-1 whitespace-nowrap rounded-[4px] border-[1.5px] px-2 py-1 font-heading text-[11px] font-bold leading-none tracking-[0.1em] ${TONES[tone]}`}
+      className={`inline-flex items-center gap-1 whitespace-nowrap rounded-[4px] border-[1.5px] bg-white px-2 py-1 font-heading text-[11px] font-bold leading-none tracking-[0.1em] ${TONES[tone]}`}
     >
       {tone === "green" && <Check className="size-3" strokeWidth={3} aria-hidden="true" />}
       {label}

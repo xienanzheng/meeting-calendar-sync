@@ -1,4 +1,4 @@
-import { CircleAlert, RotateCw } from "lucide-react";
+import { CircleAlert, RotateCw, X } from "lucide-react";
 import { Button } from "./Button";
 
 /** Inline red note: what went wrong, the server's message, and an optional retry. */
@@ -7,11 +7,13 @@ export function ErrorNote({
   message,
   onRetry,
   retryLabel = "Try again",
+  onDismiss,
 }: {
   title: string;
   message?: string;
   onRetry?: () => void;
   retryLabel?: string;
+  onDismiss?: () => void;
 }) {
   return (
     <div role="alert" className="flex items-start gap-3 rounded-md border border-red-line bg-red-bg px-4 py-3 text-sm text-red">
@@ -24,6 +26,16 @@ export function ErrorNote({
         <Button size="sm" onClick={onRetry} icon={<RotateCw className="size-3.5" aria-hidden="true" />}>
           {retryLabel}
         </Button>
+      )}
+      {onDismiss && (
+        <Button
+          size="icon"
+          variant="quiet"
+          onClick={onDismiss}
+          aria-label="Dismiss"
+          className="-my-1 -mr-1.5 border-transparent bg-transparent text-red enabled:hover:bg-white"
+          icon={<X className="size-4" aria-hidden="true" />}
+        />
       )}
     </div>
   );

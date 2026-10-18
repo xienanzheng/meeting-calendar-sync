@@ -1,7 +1,7 @@
 import { Loader2 } from "lucide-react";
-import { useEffect, useState, type ButtonHTMLAttributes, type ReactNode } from "react";
+import { useEffect, useState, type ButtonHTMLAttributes, type ReactNode, type Ref } from "react";
 
-export type ButtonVariant = "primary" | "beige" | "quiet" | "danger";
+export type ButtonVariant = "primary" | "beige" | "quiet" | "danger" | "ghost";
 export type ButtonSize = "md" | "sm" | "icon";
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -11,6 +11,7 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   loading?: boolean;
   /** A lucide icon shown before the label; replaced by the spinner while loading. */
   icon?: ReactNode;
+  ref?: Ref<HTMLButtonElement>;
 }
 
 const VARIANTS: Record<ButtonVariant, string> = {
@@ -23,6 +24,9 @@ const VARIANTS: Record<ButtonVariant, string> = {
   // red text on white; fills a faint red on hover
   danger:
     "border border-red-line bg-white text-red enabled:hover:border-red enabled:hover:bg-red-bg enabled:active:bg-[#f9e2e5] focus-visible:outline-red",
+  // for the navy bar: a hairline outline that fills navy-2 on hover; beige focus ring
+  ghost:
+    "border border-white/35 bg-transparent text-white enabled:hover:border-white/60 enabled:hover:bg-navy-2 enabled:active:bg-navy-3 focus-visible:outline-beige",
 };
 
 const SIZES: Record<ButtonSize, string> = {
