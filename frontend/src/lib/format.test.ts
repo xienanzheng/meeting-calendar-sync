@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dateRange, dayHeading, formatTime12, localHint, tzLabel } from "./format";
+import { dateRange, dayHeading, formatTime12, localHint, tzLabel, tzShort } from "./format";
 
 describe("formatTime12", () => {
   it.each([
@@ -35,5 +35,17 @@ describe("dates", () => {
   it("labels timezones", () => {
     expect(tzLabel("America/New_York")).toBe("Eastern time");
     expect(tzLabel(null)).toBe("Timezone not set");
+  });
+});
+
+describe("tzShort", () => {
+  it("uses the same short names as the local-time hints", () => {
+    expect(tzShort("America/New_York")).toBe("ET");
+    expect(tzShort("America/Los_Angeles")).toBe("PT");
+    expect(tzShort("Asia/Hong_Kong")).toBe("HKT");
+  });
+  it("falls back to an offset name, and copes with no zone", () => {
+    expect(tzShort("Asia/Kolkata")).toMatch(/^(GMT\+5:30|IST)$/);
+    expect(tzShort(null)).toBe("No timezone");
   });
 });

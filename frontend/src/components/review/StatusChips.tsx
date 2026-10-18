@@ -3,12 +3,19 @@ import type { StatusFilter } from "../../lib/review";
 const CHIPS: { key: StatusFilter; label: string }[] = [
   { key: "all", label: "All" },
   { key: "needs_attention", label: "Needs attention" },
+  { key: "warnings", label: "Warnings" },
   { key: "ready", label: "Ready" },
   { key: "verified", label: "Verified" },
   { key: "sent", label: "Sent" },
 ];
 
-/** Status filter chips for the selected colleague's meetings, each with its count. */
+// A count that asks for a look: red for what blocks verifying, amber for warnings worth checking.
+const ALERT: Partial<Record<StatusFilter, string>> = { needs_attention: "text-red", warnings: "text-amber" };
+
+/**
+ * Status filter chips for the selected colleague's meetings, each with its count. "Warnings" cuts across
+ * the states: every live meeting with a warning (a fuzzy match, a double booking, an assumed end…).
+ */
 export function StatusChips({
   counts,
   value,
@@ -23,7 +30,7 @@ export function StatusChips({
       {CHIPS.map(({ key, label }) => {
         const on = value === key;
         const count = counts[key];
-        const alert = key === "needs_attention" && count > 0 && !on;
+        const alert = count > 0 && !on ? ALERT[key] : undefined;
         return (
           <button
             key={key}
@@ -40,7 +47,7 @@ export function StatusChips({
           >
             {label}
             <span
-              className={`tabular font-heading font-bold ${on ? "text-beige" : alert ? "text-red" : count === 0 ? "text-muted" : "text-ink"}`}
+              className={`tabular font-heading font-bold ${on ? "text-beige" : (alert ?? (count === 0 ? "text-muted" : "text-ink"))}`}
             >
               {count}
             </span>

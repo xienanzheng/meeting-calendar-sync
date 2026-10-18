@@ -249,24 +249,31 @@ export function SyncStatus({
   let icon = <CalendarCheck className="size-4 text-beige" aria-hidden="true" />;
   let title = `${onCalendars} on calendars`;
   let sub = route;
+  // Below 1680px the bar is tight: the calm states shrink to icon + count (the full line is the tooltip);
+  // anything to act on keeps its words.
+  let short = String(onCalendars);
   let action: "retry" | "sync" | null = null;
   if (needsSignIn) {
     icon = <LogIn className="size-4 text-beige" aria-hidden="true" />;
     title = "Sign in to Microsoft";
     sub = pending > 0 ? `${pending} ${pending === 1 ? "update" : "updates"} waiting for Outlook` : route;
+    short = "Sign in";
   } else if (failed > 0) {
     icon = <CircleAlert className="size-4 text-red-on-navy" aria-hidden="true" />;
     title = `${failed} failed —`;
     sub = `${onCalendars} on calendars · ${route}`;
+    short = `${failed} failed`;
     action = "retry";
   } else if (pending > 0) {
     icon = <RefreshCw className="size-4 text-amber-on-navy" aria-hidden="true" />;
     title = `${pending} to update —`;
+    short = `${pending} to update`;
     action = "sync";
   } else if (onCalendars === 0) {
     icon = <Calendar className="size-4 text-white/75" aria-hidden="true" />;
     title = "Nothing on calendars yet";
   }
+  const tooltip = `${title.replace(/ —$/, "")} · ${sub}`;
 
   return (
     <div className="relative flex shrink-0 items-center gap-1.5">
@@ -275,17 +282,24 @@ export function SyncStatus({
         type="button"
         popoverTarget={popId}
         onClick={needsSignIn ? startLogin : undefined}
+        title={tooltip}
         className={[
-          "flex items-center gap-2 rounded-md px-2 py-1 text-left transition-colors duration-150 hover:bg-navy-2",
+          "flex items-center gap-2 rounded-md px-2 py-1 text-left transition-colors duration-150 hover:bg-navy-2 max-[1680px]:gap-1.5",
           needsSignIn ? "border border-white/35" : "",
         ].join(" ")}
       >
         {icon}
-        <span className="leading-tight">
+        <span className="leading-tight max-[1680px]:sr-only">
           <span className={`tabular block whitespace-nowrap text-[13px] font-semibold ${failed > 0 && !needsSignIn ? "text-red-on-navy" : "text-white"}`}>
             {title}
           </span>
           <span className="block whitespace-nowrap text-[11px] font-medium text-white/75">{sub}</span>
+        </span>
+        <span
+          aria-hidden="true"
+          className={`tabular whitespace-nowrap font-heading text-[15px] font-bold min-[1680px]:hidden ${failed > 0 && !needsSignIn ? "text-red-on-navy" : "text-white"}`}
+        >
+          {short}
         </span>
       </button>
       {action && (
@@ -300,10 +314,15 @@ export function SyncStatus({
         </Button>
       )}
 
-      {/* Always mounted so screen readers hear each new message. */}
-      <div role="status" aria-live="polite" className="pointer-events-none absolute right-0 top-full z-40 mt-3">
+      {/* Always mounted so screen readers hear each new message. It shows at the foot of the itinerary
+          column (past the 250px rail), never over the source panel or its header. */}
+      <div
+        role="status"
+        aria-live="polite"
+        className="pointer-events-none fixed bottom-6 left-[calc(250px+1.75rem)] z-40 max-rail:left-4"
+      >
         {flash && (
-          <p className="w-max max-w-[320px] rounded-md bg-ink px-3 py-2 text-xs font-semibold text-white shadow-[0_4px_12px_rgba(24,41,88,0.25)]">
+          <p className="w-max max-w-[min(360px,calc(100vw-2rem))] rounded-md bg-ink px-3 py-2 text-xs font-semibold text-white shadow-[0_4px_12px_rgba(24,41,88,0.25)]">
             {flash}
           </p>
         )}

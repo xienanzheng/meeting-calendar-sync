@@ -6,8 +6,9 @@ import { inputClass } from "./fields";
 export type EditableTone = "light" | "navy";
 
 const VIEW: Record<EditableTone, string> = {
-  light: "px-2.5 py-1.5 hover:bg-cream",
-  navy: "-mx-1.5 px-1.5 py-0.5 text-white hover:bg-navy-2",
+  light: "w-full px-2.5 py-1.5 hover:bg-cream",
+  // The hover fill bleeds 6px past the text on both sides: 12px wider than the slot, pulled back by -mx.
+  navy: "-mx-1.5 w-[calc(100%+0.75rem)] px-1.5 py-0.5 text-white hover:bg-navy-2",
 };
 
 const INPUT: Record<EditableTone, string> = {
@@ -107,7 +108,7 @@ export function EditableCell({
         ref={viewRef}
         type="button"
         onClick={open}
-        className={`group flex w-full min-w-0 items-center gap-2 rounded-md text-left transition-colors duration-150 ${VIEW[tone]}`}
+        className={`group flex min-w-0 items-center gap-2 rounded-md text-left transition-colors duration-150 ${VIEW[tone]}`}
       >
         <span className="sr-only">Edit {label}: </span>
         <span className={`truncate ${textTone} ${textClassName}`}>{value || placeholder}</span>

@@ -89,31 +89,37 @@ export function Shell({ context, actions, scroll = true, children }: ShellProps)
       >
         Skip to content
       </a>
-      {/* With page context (the Review page) the bar sheds parts as the window narrows, so the conference
-          keeps its room: the product name below 1680px, the wordmark text below 1100px, and below 1024px
-          the context drops to a second row. */}
+      {/* With page context (the Review page) the bar keeps every part down to laptop widths by tightening:
+          below 1680px the product name stacks under the wordmark and the gaps narrow; below 1024px the
+          context drops to a second row; on phones (<640px) only the mark stays in view. */}
       <header
-        className={`on-navy flex min-h-16 shrink-0 items-center gap-x-6 gap-y-1.5 bg-navy px-7 text-white ${context ? "max-lg:flex-wrap max-lg:px-4 max-lg:py-2.5" : ""}`}
+        className={`on-navy flex min-h-16 shrink-0 items-center gap-y-1.5 bg-navy px-7 text-white ${context ? "gap-x-4 min-[1680px]:gap-x-6 max-[1280px]:gap-x-3.5 max-lg:flex-wrap max-lg:px-4 max-lg:py-2.5" : "gap-x-6"}`}
       >
-        <div className="flex shrink-0 items-center gap-5">
-          <Link to="/" className="flex items-center gap-3 rounded-sm">
-            <WoodlineMark className="h-[15px] w-10" />
+        <Link
+          to="/"
+          className={`flex shrink-0 items-center gap-3 rounded-sm ${context ? "max-[1680px]:border-r max-[1680px]:border-white/25 max-[1680px]:pr-4 max-sm:border-r-0 max-sm:pr-0" : ""}`}
+        >
+          <WoodlineMark className="h-[15px] w-10" />
+          <span className={`flex items-center gap-5 ${context ? "max-[1680px]:flex-col max-[1680px]:items-start max-[1680px]:gap-0.5" : ""}`}>
             <span
-              className={`font-wordmark text-[15px] uppercase tracking-[0.25em] ${context ? "max-[1100px]:sr-only" : ""}`}
+              className={`font-wordmark text-[15px] uppercase leading-none tracking-[0.25em] ${context ? "max-[1680px]:text-[13px] max-sm:sr-only" : ""}`}
             >
               Woodline
             </span>
-          </Link>
-          <span
-            className={`border-l border-white/25 pl-5 font-heading text-[15px] font-semibold text-white/85 ${context ? "max-[1679px]:hidden" : ""}`}
-          >
-            Meeting Calendar Sync
+            <span
+              className={`font-heading text-[15px] font-semibold text-white/85 ${context ? "min-[1680px]:border-l min-[1680px]:border-white/25 min-[1680px]:pl-5 max-[1680px]:text-xs max-[1680px]:leading-none max-sm:sr-only" : "border-l border-white/25 pl-5"}`}
+            >
+              Meeting Calendar Sync
+            </span>
           </span>
-        </div>
+        </Link>
         <div className={`flex min-w-0 flex-1 items-center gap-3 ${context ? "max-lg:order-last max-lg:basis-full" : ""}`}>
           {context}
         </div>
-        <nav aria-label="Main" className="ml-auto flex shrink-0 items-center gap-5 text-sm font-semibold">
+        <nav
+          aria-label="Main"
+          className={`ml-auto flex shrink-0 items-center text-sm font-semibold ${context ? "gap-3.5 min-[1680px]:gap-5 max-[1280px]:gap-3 max-[1280px]:text-[13px]" : "gap-5"}`}
+        >
           <NavLink to="/" end className={({ isActive }) => navClass(isActive || inConferences)}>
             Conferences
           </NavLink>
@@ -126,7 +132,7 @@ export function Shell({ context, actions, scroll = true, children }: ShellProps)
         <div className={`hidden shrink-0 items-center gap-2 ${context ? "min-[2200px]:flex" : "xl:flex"}`}>
           <ConfigBadges config={config} error={error} />
         </div>
-        {actions && <div className="flex shrink-0 items-center gap-3">{actions}</div>}
+        {actions && <div className="flex shrink-0 items-center gap-3 max-[1280px]:gap-2.5 max-sm:min-w-0 max-sm:shrink max-sm:flex-wrap">{actions}</div>}
       </header>
       {config?.ephemeral && (
         <div

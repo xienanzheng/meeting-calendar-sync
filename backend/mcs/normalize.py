@@ -47,6 +47,11 @@ def valid_timezone(tz: str | None) -> str | None:
     return tz
 
 
+def clock_12h(t: dt.time) -> str:
+    """09:45 -> "9:45 AM", 13:05 -> "1:05 PM": how the review table prints times."""
+    return f"{t.hour % 12 or 12}:{t.minute:02d} {'AM' if t.hour < 12 else 'PM'}"
+
+
 def add_minutes(t: dt.time, minutes: int) -> dt.time:
     return (dt.datetime.combine(dt.date(2000, 1, 1), t) + dt.timedelta(minutes=minutes)).time()
 
@@ -179,7 +184,7 @@ def compute_flags(timezone: str | None, meetings: Sequence[MeetingView],
                 for aid in shared:
                     who = names.get(aid, "A colleague")
                     out[a.id].append(Flag("double_booked", "warn",
-                                          f"{who} is also in {b.company} at {b.start_time:%H:%M}."))
+                                          f"{who} is also in {b.company} at {clock_12h(b.start_time)}."))
                     out[b.id].append(Flag("double_booked", "warn",
-                                          f"{who} is also in {a.company} at {a.start_time:%H:%M}."))
+                                          f"{who} is also in {a.company} at {clock_12h(a.start_time)}."))
     return out

@@ -75,11 +75,13 @@
 
 /* ---------- Review timetable ----------
    Table rows at full width; below 616px of itinerary column (or a <=900px window) each row stacks as
-   time | company / room · shared with | stamp. The fixed columns take 474px, so 616px leaves the company
+   time | company / room · with colleagues | stamp. The fixed columns take 474px, so 616px leaves the company
    column 142px: with the panel docked the full table holds down to a ~1322px window (1332px with
    classic scrollbars), covering 1366. Unlayered, so these beat the table-mode utilities. */
 .itinerary { container: itinerary / inline-size; }
-.tt-label { display: none; }
+/* Stacked rows put room and colleagues on one line ("Ballroom C · with Avery Kim") in their own cell, so
+   long name lists wrap back to the line start; the table hides that cell. */
+.tt-meta { display: none; }
 
 @container itinerary (width < 38.5rem) {
   .tt-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
@@ -87,8 +89,8 @@
   .tt-table colgroup { display: none; }
   .tt-row {
     display: grid;
-    grid-template-columns: 5.25rem auto minmax(0, 1fr) auto;
-    grid-template-areas: "time company company status" "time room shared status";
+    grid-template-columns: 5.25rem minmax(0, 1fr) auto;
+    grid-template-areas: "time company status" "time meta status";
     column-gap: 0.75rem;
     row-gap: 0.25rem;
     align-items: start;
@@ -99,12 +101,9 @@
   .tt-row > td { display: block; padding: 0; border: 0; }
   .tt-time { grid-area: time; }
   .tt-company { grid-area: company; }
-  .tt-room { grid-area: room; font-size: 13px; color: var(--color-muted); }
-  .tt-shared { grid-area: shared; font-size: 13px; margin-left: -0.5rem; }
-  .tt-shared[data-empty] { visibility: hidden; }
-  .tt-room[data-empty] + .tt-shared .tt-dot { display: none; }
+  .tt-row > .tt-room, .tt-row > .tt-shared, .tt-row > .tt-meta[data-empty] { display: none; }
+  .tt-meta { grid-area: meta; }
   .tt-status { grid-area: status; }
-  .tt-label { display: inline; }
 }
 @media (width < 56.3125rem) {
   .tt-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
@@ -112,8 +111,8 @@
   .tt-table colgroup { display: none; }
   .tt-row {
     display: grid;
-    grid-template-columns: 5.25rem auto minmax(0, 1fr) auto;
-    grid-template-areas: "time company company status" "time room shared status";
+    grid-template-columns: 5.25rem minmax(0, 1fr) auto;
+    grid-template-areas: "time company status" "time meta status";
     column-gap: 0.75rem;
     row-gap: 0.25rem;
     align-items: start;
@@ -124,13 +123,27 @@
   .tt-row > td { display: block; padding: 0; border: 0; }
   .tt-time { grid-area: time; }
   .tt-company { grid-area: company; }
-  .tt-room { grid-area: room; font-size: 13px; color: var(--color-muted); }
-  .tt-shared { grid-area: shared; font-size: 13px; margin-left: -0.5rem; }
-  .tt-shared[data-empty] { visibility: hidden; }
-  .tt-room[data-empty] + .tt-shared .tt-dot { display: none; }
+  .tt-row > .tt-room, .tt-row > .tt-shared, .tt-row > .tt-meta[data-empty] { display: none; }
+  .tt-meta { grid-area: meta; }
   .tt-status { grid-area: status; }
-  .tt-label { display: inline; }
 }
+
+/* The source panel's highlighted PDF row: beige laid over the page like a highlighter (multiply keeps the
+   printed text black), with a navy outline. */
+.pdf-hit {
+  background: rgb(227 222 176 / 0.6);
+  outline: 2px solid var(--color-navy);
+  mix-blend-mode: multiply;
+}
+
+/* The one authored moment: a stamp landing when a meeting is verified or sent. It comes down 8% large
+   and a little over-tilted, and settles to its -3deg tilt in 200ms on an exponential ease-out. Tailwind's
+   -rotate-3 sets the `rotate` property, so the keyframes animate `scale` and `rotate`, not `transform`. */
+@keyframes mcs-stamp-land {
+  from { scale: 1.08; rotate: -6deg; }
+  to { scale: 1; rotate: -3deg; }
+}
+.stamp-land { animation: mcs-stamp-land 200ms cubic-bezier(0.16, 1, 0.3, 1); }
 
 /* The revision strip arriving under the bar: one short ease-out. */
 @keyframes mcs-reveal {
@@ -139,7 +152,7 @@
 }
 .reveal { animation: mcs-reveal 180ms cubic-bezier(0.16, 1, 0.3, 1); }
 
-/* The one authored motion: the extraction progress bar sweeping while Claude reads the PDF. */
+/* The extraction progress bar sweeping while Claude reads the PDF (a loading indicator, on the upload page). */
 @keyframes mcs-sweep {
   from { transform: translateX(-100%); }
   to { transform: translateX(260%); }
@@ -149,5 +162,6 @@
 @media (prefers-reduced-motion: reduce) {
   .progress-sweep { animation-duration: 4s; }
   .reveal { animation: none; }
+  .stamp-land { animation: none; }
   *, ::before, ::after { transition-duration: 0.01ms !important; }
 }

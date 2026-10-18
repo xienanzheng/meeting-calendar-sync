@@ -43,7 +43,7 @@ def _strict_time(value: str | None) -> dt.time | None:
         return None
     parsed = parse_time(value)
     if parsed is None:
-        raise InvalidInput(f"Couldn't read the time {value!r}. Use HH:MM, e.g. 08:30.")
+        raise InvalidInput(f"Couldn't read the time {value!r}. Enter it like 2:30 PM or 14:30.")
     return parsed
 
 

@@ -58,6 +58,14 @@ export function dayHeading(isoDate: string | null): string {
   return day ? day.toFormat("cccc, LLLL d") : "Date missing";
 }
 
+/** "ET" for America/New_York, the short names the local-time hints use; else an offset name like "GMT+5:30". */
+export function tzShort(tz: string | null): string {
+  if (!tz) return "No timezone";
+  if (ZONE_ABBR[tz]) return ZONE_ABBR[tz];
+  const now = DateTime.now().setZone(tz);
+  return now.isValid ? now.setLocale(LOCALE).toFormat("ZZZZ") : tz;
+}
+
 /** "Eastern time" for America/New_York; the raw zone name when Intl can't name it. */
 export function tzLabel(tz: string | null): string {
   if (!tz) return "Timezone not set";

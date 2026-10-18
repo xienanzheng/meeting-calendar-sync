@@ -153,6 +153,17 @@ def test_conference_edit_add_delete_meeting(client, settings):
     assert list(settings.uploads_dir.glob("*")) == []
 
 
+def test_meeting_times_accept_the_review_tables_format(client):
+    # The source panel's Start/End fields show and send times as the table prints them ("2:30 PM").
+    d = upload(client).json()
+    mid = d["meetings"][0]["id"]
+    for typed, stored in [("2:30 PM", "14:30"), ("2pm", "14:00"), ("9:05 am", "09:05"), ("16:15", "16:15")]:
+        d = client.patch(f"/api/meetings/{mid}", json={"start": typed}).json()
+        assert next(m for m in d["meetings"] if m["id"] == mid)["start"] == stored
+    r = client.patch(f"/api/meetings/{mid}", json={"end": "25:00"})
+    assert r.status_code == 400 and "2:30 PM" in r.json()["detail"]
+
+
 def test_unconfirm(client):
     d = upload(client).json()
     mid = d["meetings"][0]["id"]

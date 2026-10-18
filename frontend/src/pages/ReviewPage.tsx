@@ -39,6 +39,7 @@ import {
   selectionKey,
   statusCounts,
   unmatchedNames,
+  warningCount,
   type Selection,
   type StatusFilter,
 } from "../lib/review";
@@ -63,16 +64,18 @@ const EMPTY_FILTER: Record<StatusFilter, string> = {
   ready: "No drafts are ready to verify",
   verified: "Nothing is verified and waiting for calendars",
   sent: "Nothing is on calendars yet",
+  warnings: "No meetings have warnings",
 };
 
 /** The conference totals as a compact two-line block, in step with the context and sync status beside it. */
 function Totals({ counts }: { counts: Counts }) {
   const num = "tabular font-heading font-bold";
+  const big = "text-[15px] max-[1280px]:text-[14px]";
   return (
-    <p className="whitespace-nowrap leading-tight max-[1439px]:hidden">
-      <span className="block text-[13px] font-semibold text-white">
-        <span className={`${num} text-[15px]`}>{counts.total}</span> meetings ·{" "}
-        <span className={`${num} text-[15px] ${counts.needs_attention > 0 ? "text-red-on-navy" : ""}`}>{counts.needs_attention}</span>{" "}
+    <p className="whitespace-nowrap leading-tight max-[1200px]:hidden">
+      <span className="block text-[13px] font-semibold text-white max-[1280px]:text-xs">
+        <span className={`${num} ${big}`}>{counts.total}</span> meetings ·{" "}
+        <span className={`${num} ${big} ${counts.needs_attention > 0 ? "text-red-on-navy" : ""}`}>{counts.needs_attention}</span>{" "}
         need attention
       </span>
       <span className="block text-[11px] font-medium text-white/75">
@@ -228,6 +231,7 @@ function Review({ id }: { id: number }) {
 
   const inSelection = useMemo(() => filterMeetings(meetings, selection, "all"), [meetings, selection]);
   const counts = useMemo(() => statusCounts(inSelection), [inSelection]);
+  const chipCounts = useMemo(() => ({ ...counts, warnings: warningCount(inSelection) }), [counts, inSelection]);
   const groups = useMemo(() => groupByDate(filterMeetings(meetings, selection, status)), [meetings, selection, status]);
   const rows = useMemo(() => groups.flatMap((g) => g.meetings), [groups]);
   const readyIds = rows.filter((m) => m.review_state === "ready").map((m) => m.id);
@@ -405,8 +409,10 @@ function Review({ id }: { id: number }) {
               onClick={verifyAll}
               icon={<CheckCheck className="size-4" aria-hidden="true" />}
               title="Verifies every draft without problems in the current view; they go straight to calendars"
+              className="max-[1280px]:h-8 max-[1280px]:gap-1.5 max-[1280px]:px-3 max-[1280px]:text-[13px]"
             >
-              Verify all ready ({readyIds.length})
+              <span className="max-[420px]:hidden">Verify all ready ({readyIds.length})</span>
+              <span className="min-[420px]:hidden">Verify ready ({readyIds.length})</span>
             </Button>
           )}
         </>
@@ -475,7 +481,7 @@ function Review({ id }: { id: number }) {
                   <ColleagueSelect {...railProps} />
                 </div>
                 <div className="mb-[18px] mt-3.5">
-                  <StatusChips counts={counts} value={status} onChange={changeStatus} />
+                  <StatusChips counts={chipCounts} value={status} onChange={changeStatus} />
                 </div>
 
                 {meetings.length === 0 ? (

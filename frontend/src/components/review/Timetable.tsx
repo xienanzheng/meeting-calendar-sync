@@ -76,6 +76,8 @@ function Row({
   const cancelled = meeting.review_state === "cancelled";
   const others = sharedWith(meeting, selection);
   const executives = [meeting.company_attendees.join(", "), formatLabel(meeting.format)].filter(Boolean).join(" · ");
+  const meta = [meeting.room, others.length ? `with ${others.join(", ")}` : ""].filter(Boolean).join(" · ");
+  const removing = meeting.removed.length ? `Removing from ${meeting.removed.map((a) => a.name).join(", ")}` : null;
 
   function onKeyDown(event: KeyboardEvent<HTMLTableRowElement>) {
     if (event.target !== event.currentTarget) return;
@@ -116,20 +118,15 @@ function Row({
         {meeting.ticker && <span className="ml-1.5 font-heading text-[11px] font-bold text-blue">{meeting.ticker}</span>}
         <span className="block text-[13px] leading-snug text-muted">{executives}</span>
       </td>
-      <td className={`tt-room ${cell}`} data-empty={meeting.room ? undefined : ""}>
-        {meeting.room || "—"}
-      </td>
-      <td className={`tt-shared ${cell} text-[13px] text-muted`} data-empty={others.length || meeting.removed.length ? undefined : ""}>
-        <span className="tt-label tt-dot" aria-hidden="true">
-          ·{" "}
-        </span>
-        <span className="tt-label">with </span>
+      <td className={`tt-room ${cell}`}>{meeting.room || "—"}</td>
+      <td className={`tt-shared ${cell} text-[13px] text-muted`}>
         {others.join(", ") || "—"}
-        {meeting.removed.length > 0 && (
-          <span className="block font-semibold text-amber">
-            Removing from {meeting.removed.map((a) => a.name).join(", ")}
-          </span>
-        )}
+        {removing && <span className="block font-semibold text-amber">{removing}</span>}
+      </td>
+      {/* Stacked rows only: room and colleagues as one line that wraps back to its start. */}
+      <td className="tt-meta text-[13px] leading-snug text-muted" data-empty={meta || removing ? undefined : ""}>
+        {meta}
+        {removing && <span className="block font-semibold text-amber">{removing}</span>}
       </td>
       <StatusCell meeting={meeting} />
     </tr>

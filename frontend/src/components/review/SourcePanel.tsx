@@ -5,14 +5,23 @@ import {
   Check,
   ChevronDown,
   CircleAlert,
-  ExternalLink,
   Loader2,
   RefreshCw,
   TriangleAlert,
   Users,
   X,
 } from "lucide-react";
-import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode, type RefObject } from "react";
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type ReactNode,
+  type RefObject,
+} from "react";
 import {
   ApiError,
   confirmMeeting,
@@ -31,13 +40,17 @@ import {
   type Revision,
   type RevisionChange,
 } from "../../api";
-import { formatLabel } from "../../lib/format";
+import { dayHeading, formatLabel, formatTime12 } from "../../lib/format";
 import { readableSummary } from "../../lib/revision";
-import { isOnCalendars, sharedWith, type Selection } from "../../lib/review";
+import { conferenceDates, isOnCalendars, sharedWith, type Selection } from "../../lib/review";
 import { Button, ConfirmButton } from "../Button";
 import { fieldLabelClass, inputClass } from "../fields";
 import { Note } from "../Note";
 import { AttendeePicker } from "./AttendeePicker";
+import type { RowTarget } from "./PdfViewer";
+
+// pdf.js is large; it loads with the first source panel, not with the app.
+const PdfViewer = lazy(() => import("./PdfViewer"));
 
 export type Run = (promise: Promise<ConferenceDetail>) => Promise<ConferenceDetail>;
 
@@ -45,11 +58,12 @@ const FORMATS: MeetingFormat[] = ["one_on_one", "group", "meal", "other"];
 
 // ---------- fields ----------
 
-type FieldKind = "text" | "time" | "date" | "textarea";
+type FieldKind = "text" | "textarea";
 
 /**
  * A field that saves on blur (and Enter in single-line fields) when its value changed. While it has
  * focus it keeps CR's draft even if fresh detail arrives from another save; Esc puts the saved value back.
+ * After its own save it shows the saved value as the server wrote it (e.g. "2pm" comes back "2:00 PM").
  */
 function Field({
   label,
@@ -59,6 +73,7 @@ function Field({
   disabled,
   hint,
   className = "",
+  inputClassName = "",
   validate,
   onSave,
 }: {
@@ -69,6 +84,7 @@ function Field({
   disabled?: boolean;
   hint?: ReactNode;
   className?: string;
+  inputClassName?: string;
   validate?: (value: string) => string | null;
   onSave: (value: string) => Promise<unknown>;
 }) {
@@ -76,18 +92,19 @@ function Field({
   const [draft, setDraft] = useState(value);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [saves, setSaves] = useState(0);
+  const synced = useRef(0);
   const focused = useRef(false);
   const inFlight = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!focused.current) setDraft(value);
-  }, [value]);
-
-  async function commit(target: HTMLInputElement | HTMLTextAreaElement) {
-    if (target instanceof HTMLInputElement && target.validity.badInput) {
-      setError(kind === "time" ? "Enter a full time, hours and minutes." : "Enter a full date.");
-      return;
+    if (!focused.current || synced.current !== saves) {
+      synced.current = saves;
+      setDraft(value);
     }
+  }, [value, saves]);
+
+  async function commit() {
     const next = draft.trim();
     if (next === value.trim() || next === inFlight.current) return;
     const problem = validate?.(next) ?? null;
@@ -100,6 +117,7 @@ function Field({
     setError(null);
     try {
       await onSave(next);
+      setSaves((n) => n + 1);
     } catch (err) {
       setError(errorMessage(err));
     } finally {
@@ -115,7 +133,7 @@ function Field({
       setError(null);
     } else if (event.key === "Enter" && kind !== "textarea") {
       event.preventDefault();
-      commit(event.currentTarget);
+      commit();
     }
   }
 
@@ -124,6 +142,7 @@ function Field({
     value: draft,
     disabled,
     placeholder,
+    autoComplete: "off",
     "aria-invalid": error ? true : undefined,
     "aria-describedby": error ? `${id}-error` : undefined,
     onFocus: () => {
@@ -133,9 +152,9 @@ function Field({
       setDraft(event.target.value);
       setError(null);
     },
-    onBlur: (event: { currentTarget: HTMLInputElement | HTMLTextAreaElement }) => {
+    onBlur: () => {
       focused.current = false;
-      commit(event.currentTarget);
+      commit();
     },
     onKeyDown,
   };
@@ -150,7 +169,7 @@ function Field({
       {kind === "textarea" ? (
         <textarea {...props} rows={2} className={`${inputClass} block resize-y py-2 font-semibold leading-snug`} />
       ) : (
-        <input {...props} type={kind} className={`${inputClass} tabular h-9 font-semibold`} />
+        <input {...props} type="text" className={`${inputClass} tabular h-9 font-semibold ${inputClassName}`} />
       )}
       {error && (
         <p id={`${id}-error`} role="alert" className="mt-1 text-xs font-semibold text-red">
@@ -197,6 +216,135 @@ function FormatField({ value, disabled, onSave }: { value: MeetingFormat; disabl
         </select>
         <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 size-4 -translate-y-1/2 text-muted" aria-hidden="true" />
       </span>
+      {error && (
+        <p role="alert" className="mt-1 text-xs font-semibold text-red">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
+const OTHER_DATE = "other";
+
+/**
+ * The meeting's date as one of the conference's days, written like the day headings ("Wednesday,
+ * December 2") so no browser locale can turn Dec 2 into 02/12. "Other date…" opens a date input for a
+ * day outside the conference, with the date it reads spelled out under it.
+ */
+function DateField({
+  value,
+  dates,
+  disabled,
+  className = "",
+  onSave,
+}: {
+  value: string | null;
+  dates: string[];
+  disabled?: boolean;
+  className?: string;
+  onSave: (date: string) => Promise<unknown>;
+}) {
+  const id = useId();
+  const otherRef = useRef<HTMLInputElement>(null);
+  const [other, setOther] = useState(false);
+  const [otherDraft, setOtherDraft] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const options = value && !dates.includes(value) ? [...dates, value].sort() : dates;
+
+  async function save(next: string) {
+    if (!next || next === value) {
+      setOther(false);
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      await onSave(next);
+      setOther(false);
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className={className}>
+      <label htmlFor={id} className={`${fieldLabelClass} flex items-center gap-1.5`}>
+        Date
+        {saving && <Loader2 className="size-3 animate-spin" aria-label="Saving" />}
+      </label>
+      <span className="relative block">
+        <select
+          id={id}
+          value={other ? OTHER_DATE : (value ?? "")}
+          disabled={disabled || saving}
+          aria-invalid={error ? true : undefined}
+          onChange={(event) => {
+            const next = event.target.value;
+            setError(null);
+            if (next === OTHER_DATE) {
+              setOther(true);
+              setOtherDraft(value ?? "");
+              requestAnimationFrame(() => otherRef.current?.focus());
+            } else {
+              setOther(false);
+              save(next);
+            }
+          }}
+          className={`${inputClass} h-9 appearance-none pr-8 font-semibold`}
+        >
+          {!value && (
+            <option value="" disabled>
+              Pick a date
+            </option>
+          )}
+          {options.map((d) => (
+            <option key={d} value={d}>
+              {dayHeading(d)}
+            </option>
+          ))}
+          <option value={OTHER_DATE}>Other date…</option>
+        </select>
+        <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 size-4 -translate-y-1/2 text-muted" aria-hidden="true" />
+      </span>
+      {other && (
+        <div className="mt-2">
+          <div className="flex gap-2">
+            <label htmlFor={`${id}-other`} className="sr-only">
+              Other date
+            </label>
+            <input
+              ref={otherRef}
+              id={`${id}-other`}
+              type="date"
+              value={otherDraft}
+              disabled={saving}
+              onChange={(event) => setOtherDraft(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  save(otherDraft);
+                } else if (event.key === "Escape") {
+                  event.stopPropagation(); // close the picker, not the drawer
+                  setOther(false);
+                }
+              }}
+              className={`${inputClass} tabular h-9 font-semibold`}
+            />
+            <Button size="sm" className="h-9" disabled={!otherDraft} loading={saving} onClick={() => save(otherDraft)}>
+              Use date
+            </Button>
+          </div>
+          {otherDraft && (
+            <p className="mt-1 text-xs font-medium text-muted">
+              {dayHeading(otherDraft)}, {otherDraft.slice(0, 4)}
+            </p>
+          )}
+        </div>
+      )}
       {error && (
         <p role="alert" className="mt-1 text-xs font-semibold text-red">
           {error}
@@ -332,11 +480,13 @@ function SyncLines({ meeting }: { meeting: Meeting }) {
 
 function MeetingEditor({
   meeting,
+  dates,
   selection,
   roster,
   run,
 }: {
   meeting: Meeting;
+  dates: string[];
   selection: Selection;
   roster: Analyst[] | null;
   run: Run;
@@ -359,27 +509,48 @@ function MeetingEditor({
       )}
       <SyncLines meeting={meeting} />
       <div className="grid grid-cols-2 gap-x-3 gap-y-3">
-        <Field label="Date" kind="date" value={meeting.date ?? ""} disabled={cancelled} onSave={(v) => save({ date: v || null })} />
-        <FormatField value={meeting.format} disabled={cancelled} onSave={(format) => save({ format })} />
-        <Field label="Start" kind="time" value={meeting.start ?? ""} disabled={cancelled} onSave={(v) => save({ start: v || null })} />
+        <DateField
+          className="col-span-2"
+          value={meeting.date}
+          dates={dates}
+          disabled={cancelled}
+          onSave={(date) => save({ date })}
+        />
+        {/* Times read and save as the table prints them ("2:30 PM"); the server also takes "14:30" or "2pm". */}
+        <Field
+          label="Start"
+          value={meeting.start ? formatTime12(meeting.start) : ""}
+          placeholder="e.g. 2:30 PM"
+          disabled={cancelled}
+          onSave={(v) => save({ start: v || null })}
+        />
         <Field
           label="End"
-          kind="time"
-          value={meeting.end ?? ""}
+          value={meeting.end ? formatTime12(meeting.end) : ""}
+          placeholder="e.g. 3:15 PM"
           disabled={cancelled}
           hint={meeting.end_assumed ? <span className="normal-case tracking-normal text-amber">(assumed)</span> : null}
           onSave={(v) => save({ end: v || null })}
         />
         <Field label="Room" value={meeting.room} placeholder="Room" disabled={cancelled} onSave={(v) => save({ room: v })} />
-        <Field label="Ticker" value={meeting.ticker ?? ""} placeholder="Ticker" disabled={cancelled} onSave={(v) => save({ ticker: v || null })} />
-        <Field
-          label="Company"
-          className="col-span-2"
-          value={meeting.company}
-          disabled={cancelled}
-          validate={(v) => (v ? null : "Enter the company's name.")}
-          onSave={(v) => save({ company: v })}
-        />
+        <FormatField value={meeting.format} disabled={cancelled} onSave={(format) => save({ format })} />
+        <div className="col-span-2 grid grid-cols-[minmax(0,1fr)_6.5rem] gap-x-3">
+          <Field
+            label="Company"
+            value={meeting.company}
+            disabled={cancelled}
+            validate={(v) => (v ? null : "Enter the company's name.")}
+            onSave={(v) => save({ company: v })}
+          />
+          <Field
+            label="Ticker"
+            value={meeting.ticker ?? ""}
+            placeholder="Ticker"
+            disabled={cancelled}
+            inputClassName="uppercase placeholder:normal-case"
+            onSave={(v) => save({ ticker: v ? v.toUpperCase() : null })}
+          />
+        </div>
         <Field
           label="Executives"
           kind="textarea"
@@ -523,9 +694,15 @@ export function SourcePanel({
 }) {
   const page = revisionSource ? (revisionSource.change?.new?.page ?? null) : (meeting?.source_page ?? null);
   const filename = revisionSource ? revisionSource.revision.pdf_filename : detail.pdf_filename;
-  const src = revisionSource
-    ? revisionPdfUrl(revisionSource.revision.id, page)
-    : pdfUrl(detail.id, page, detail.revision_number);
+  // The file (versioned by revision, so an applied revision reloads it) and the same file at its page.
+  const [fileUrl, openUrl] = revisionSource
+    ? [revisionPdfUrl(revisionSource.revision.id), revisionPdfUrl(revisionSource.revision.id, page)]
+    : [pdfUrl(detail.id, null, detail.revision_number), pdfUrl(detail.id, page, detail.revision_number)];
+  // The row to highlight: the meeting's, or the revised row of the selected change (a removed one has none).
+  const proposed = revisionSource?.change?.new ?? null;
+  const target: RowTarget | null = revisionSource
+    ? proposed && { company: proposed.company, ticker: proposed.ticker }
+    : meeting && { company: meeting.company, ticker: meeting.ticker };
   const hidden = drawer && !open;
 
   return (
@@ -558,20 +735,17 @@ export function SourcePanel({
             </Button>
           )}
         </div>
-        <div className="mt-2.5 rounded-md border border-line bg-cream-2 p-2">
-          <iframe key={src} title="Source PDF page" src={src} className="block h-[330px] w-full rounded-[3px] bg-white" />
-        </div>
-        <p className="mb-4 mt-1.5 text-right">
-          <a
-            href={src}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1 rounded-sm text-xs font-semibold text-blue underline decoration-blue/40 hover:decoration-blue"
+        <div className="mb-4 mt-2.5">
+          <Suspense
+            fallback={
+              <div role="status" aria-label="Loading the PDF" className="h-[368px] rounded-md border border-line bg-cream-2 p-2 pt-[45px]">
+                <div className="h-full rounded-[3px] bg-white" />
+              </div>
+            }
           >
-            Open the PDF in a new tab
-            <ExternalLink className="size-3" aria-hidden="true" />
-          </a>
-        </p>
+            <PdfViewer url={fileUrl} openUrl={openUrl} page={page} target={target} />
+          </Suspense>
+        </div>
 
         {revisionSource ? (
           <Note tone="info">
@@ -586,7 +760,14 @@ export function SourcePanel({
             <p className="mt-1.5 font-medium text-muted">Nothing changes on calendars until you apply.</p>
           </Note>
         ) : meeting ? (
-          <MeetingEditor key={meeting.id} meeting={meeting} selection={selection} roster={roster} run={run} />
+          <MeetingEditor
+            key={meeting.id}
+            meeting={meeting}
+            dates={conferenceDates(detail)}
+            selection={selection}
+            roster={roster}
+            run={run}
+          />
         ) : (
           <p className="text-sm font-medium text-muted">
             {detail.meetings.length === 0

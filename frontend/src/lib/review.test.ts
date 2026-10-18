@@ -1,6 +1,17 @@
 import { describe, expect, it } from "vitest";
 import type { Attendee, ConferenceDetail, Meeting } from "../api";
-import { colleaguesIn, filterMeetings, groupByDate, sendLabel, sharedWith, stampFor, statusCounts, unmatchedNames } from "./review";
+import {
+  colleaguesIn,
+  conferenceDates,
+  filterMeetings,
+  groupByDate,
+  sendLabel,
+  sharedWith,
+  stampFor,
+  statusCounts,
+  unmatchedNames,
+  warningCount,
+} from "./review";
 
 const att = (id: number, name: string, sync: Attendee["sync"] = "not_sent") =>
   ({ analyst_id: id, name, email: `${name.split(" ")[0].toLowerCase()}@example.com`, match: "exact", sync, sync_error: null });
@@ -83,5 +94,45 @@ describe("stamps and labels", () => {
     expect(sendLabel({ pending_actions: 29 } as never)).toBe("Send 29 to calendars");
     expect(sendLabel({ pending_actions: 1 } as never)).toBe("Send 1 to calendars");
     expect(sendLabel({ pending_actions: 0 } as never)).toBe("Nothing to send");
+  });
+});
+
+describe("warnings", () => {
+  const warn = { code: "fuzzy_match", severity: "warn", message: "w" } as const;
+  const block = { code: "missing_date", severity: "block", message: "b" } as const;
+  const list = [
+    m(1, { flags: [warn] }),
+    m(2, { flags: [warn, { ...warn, code: "double_booked" }] }), // two warnings still count once
+    m(3, { flags: [block], review_state: "needs_attention" }), // blocks are not warnings
+    m(4, { flags: [block, warn], review_state: "needs_attention" }),
+    m(5, { flags: [warn], review_state: "cancelled", status: "cancelled" }), // cancelled never counts
+    m(6),
+  ];
+
+  it("counts live meetings with any warn flag", () => {
+    expect(warningCount(list)).toBe(3);
+    expect(warningCount([])).toBe(0);
+    expect(warningCount(meetings)).toBe(2);
+  });
+
+  it("filters to live meetings with a warning, within the rail selection", () => {
+    expect(filterMeetings(list, { kind: "all" }, "warnings").map((x) => x.id)).toEqual([1, 2, 4]);
+    expect(filterMeetings(meetings, { kind: "colleague", id: 3 }, "warnings").map((x) => x.id)).toEqual([6]);
+  });
+
+  it("leaves the status counts' shape alone", () => {
+    expect(Object.keys(statusCounts(list)).sort()).toEqual(["all", "needs_attention", "ready", "sent", "verified"]);
+  });
+});
+
+describe("conferenceDates", () => {
+  it("lists every day from the first to the last date, plus meeting dates outside it, in order", () => {
+    const d = { first_date: "2026-12-02", last_date: "2026-12-04", meetings: [m(1, { date: "2026-12-09" }), m(2, { date: null })] };
+    expect(conferenceDates(d)).toEqual(["2026-12-02", "2026-12-03", "2026-12-04", "2026-12-09"]);
+  });
+
+  it("copes with missing or reversed ends", () => {
+    expect(conferenceDates({ first_date: null, last_date: null, meetings: [m(1, { date: "2026-11-11" })] })).toEqual(["2026-11-11"]);
+    expect(conferenceDates({ first_date: "2026-11-11", last_date: "2026-11-10", meetings: [] })).toEqual(["2026-11-10", "2026-11-11"]);
   });
 });

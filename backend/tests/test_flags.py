@@ -60,6 +60,20 @@ def test_double_booking_flags_both_meetings():
     assert "Riley Chen" in msg and "Orbital Data Networks" in msg
 
 
+def test_double_booking_message_reads_like_the_table():
+    # The review table prints 12-hour times ("9:45 AM", "1:05 PM"), so the flag does too.
+    pix = mv(1, start=(9, 30), end=(10, 30), company="Pixelmint Studios", attendees=((4, "exact"),))
+    orb = mv(2, start=(9, 45), end=(10, 30), company="Orbital Data Networks", attendees=((4, "exact"),))
+    lunch = mv(3, start=(13, 5), end=(14, 0), company="Keystone Valve", attendees=((1, "exact"),))
+    noon = mv(4, start=(12, 0), end=(13, 30), company="Lumen Sensor", attendees=((1, "exact"),))
+    out = compute_flags(TZ, [pix, orb, lunch, noon], ROSTER)
+    message = lambda i: next(f.message for f in out[i] if f.code == "double_booked")
+    assert message(1) == "Riley Chen is also in Orbital Data Networks at 9:45 AM."
+    assert message(2) == "Riley Chen is also in Pixelmint Studios at 9:30 AM."
+    assert message(3) == "Avery Kim is also in Lumen Sensor at 12:00 PM."
+    assert message(4) == "Avery Kim is also in Keystone Valve at 1:05 PM."
+
+
 def test_adjacent_and_other_day_meetings_do_not_clash():
     out = compute_flags(TZ, [mv(1, start=(9, 0), end=(9, 45)), mv(2, start=(9, 45), end=(10, 30)),
                              mv(3, date=dt.date(2026, 12, 3))], ROSTER)

@@ -1,7 +1,10 @@
 import type { Attendee, ConferenceDetail, Counts, Meeting, Severity } from "../api";
 
 export type Selection = { kind: "all" } | { kind: "colleague"; id: number } | { kind: "unmatched"; name: string };
-export type StatusFilter = "all" | "needs_attention" | "ready" | "verified" | "sent";
+/** A review state chip, or "warnings": live meetings carrying any warn flag, whatever their state. */
+export type StatusFilter = "all" | "needs_attention" | "ready" | "verified" | "sent" | "warnings";
+/** The chips that count review states (`statusCounts`); "warnings" is counted by `warningCount`. */
+export type StateFilter = Exclude<StatusFilter, "warnings">;
 export type StampTone = "muted" | "red" | "navy" | "amber" | "green" | "struck";
 
 export interface Stamp {
@@ -28,6 +31,7 @@ export interface UnmatchedEntry {
 }
 
 const isLive = (m: Meeting) => m.review_state !== "cancelled";
+const hasWarning = (m: Meeting) => isLive(m) && m.flags.some((f) => f.severity === "warn");
 
 /** Nulls sort after every value. */
 function compareNullable(a: string | null, b: string | null): number {
@@ -110,17 +114,49 @@ function inSelection(m: Meeting, selection: Selection): boolean {
  * meetings so they can be shown struck through; nothing disappears from a colleague's view.
  */
 export function filterMeetings(meetings: Meeting[], selection: Selection, status: StatusFilter): Meeting[] {
-  return meetings.filter((m) => inSelection(m, selection) && (status === "all" || m.review_state === status));
+  const matches = (m: Meeting) =>
+    status === "all" ? true : status === "warnings" ? hasWarning(m) : m.review_state === status;
+  return meetings.filter((m) => inSelection(m, selection) && matches(m));
 }
 
 /** Counts for the status chips; cancelled meetings are not counted anywhere. */
-export function statusCounts(meetings: Meeting[]): Record<StatusFilter, number> {
-  const counts: Record<StatusFilter, number> = { all: 0, needs_attention: 0, ready: 0, verified: 0, sent: 0 };
+export function statusCounts(meetings: Meeting[]): Record<StateFilter, number> {
+  const counts: Record<StateFilter, number> = { all: 0, needs_attention: 0, ready: 0, verified: 0, sent: 0 };
   for (const m of meetings.filter(isLive)) {
     counts.all += 1;
-    if (m.review_state in counts) counts[m.review_state as StatusFilter] += 1;
+    if (m.review_state in counts) counts[m.review_state as StateFilter] += 1;
   }
   return counts;
+}
+
+/** How many live meetings carry at least one warning (the "Warnings" chip). */
+export function warningCount(meetings: Meeting[]): number {
+  return meetings.filter(hasWarning).length;
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const MAX_SPAN_DAYS = 31;
+
+/**
+ * The dates a meeting of this conference can move to: every day from its first to its last date
+ * (for spans up to a month), plus any meeting's date outside that, in order. "YYYY-MM-DD" strings.
+ */
+export function conferenceDates(
+  detail: Pick<ConferenceDetail, "first_date" | "last_date"> & { meetings: Pick<Meeting, "date">[] },
+): string[] {
+  const out = new Set<string>();
+  const ends = [detail.first_date, detail.last_date].filter((d): d is string => !!d).sort();
+  if (ends.length) {
+    const from = Date.parse(`${ends[0]}T00:00:00Z`);
+    const to = Date.parse(`${ends[ends.length - 1]}T00:00:00Z`);
+    if (!Number.isNaN(from) && !Number.isNaN(to) && (to - from) / DAY_MS <= MAX_SPAN_DAYS) {
+      for (let t = from; t <= to; t += DAY_MS) out.add(new Date(t).toISOString().slice(0, 10));
+    } else {
+      ends.forEach((d) => out.add(d));
+    }
+  }
+  for (const m of detail.meetings) if (m.date) out.add(m.date);
+  return [...out].sort();
 }
 
 const NEEDS_LABELS: Record<string, string> = {

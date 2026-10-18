@@ -1,7 +1,7 @@
 import { ChevronDown, CircleAlert, FileUp, Search } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { errorMessage, type ConferenceDetail } from "../../api";
-import { dateRange, tzLabel } from "../../lib/format";
+import { dateRange, tzLabel, tzShort } from "../../lib/format";
 import { checkPdf } from "../../lib/upload";
 import { Button } from "../Button";
 import { EditableCell } from "../EditableCell";
@@ -63,7 +63,17 @@ function TimezonePicker({ timezone, onSave }: { timezone: string | null; onSave:
         className={`inline-flex shrink-0 items-center gap-1 rounded-sm underline decoration-white/35 underline-offset-[3px] transition-colors duration-150 hover:decoration-white ${timezone ? "" : "font-bold text-red-on-navy decoration-red-on-navy/50"}`}
       >
         {!timezone && <CircleAlert className="size-3.5" aria-hidden="true" />}
-        {timezone ? tzLabel(timezone) : "Set timezone"}
+        {timezone ? (
+          <>
+            {/* Below 1280px the bar is tight: "ET", as the table's local-time hints write it. */}
+            <span className="max-[1280px]:sr-only">{tzLabel(timezone)}</span>
+            <span aria-hidden="true" title={tzLabel(timezone)} className="min-[1280px]:hidden">
+              {tzShort(timezone)}
+            </span>
+          </>
+        ) : (
+          "Set timezone"
+        )}
         <ChevronDown className="size-3" aria-hidden="true" />
         <span className="sr-only">, change the conference timezone</span>
       </button>
@@ -147,8 +157,8 @@ function TimezonePicker({ timezone, onSave }: { timezone: string | null; onSave:
 }
 
 /**
- * The conference in the top bar: its name (click to rename), then hotel · city · dates · timezone and the
- * revision number, and the "Upload revised PDF" button.
+ * The conference in the top bar: its name (click to rename) with the revision number, then hotel · city ·
+ * dates · timezone, and the "Upload revised PDF" button.
  */
 export function ConferenceContext({
   detail,
@@ -170,19 +180,31 @@ export function ConferenceContext({
   return (
     <>
       <div className="min-w-0 max-w-[560px]">
-        <EditableCell
-          tone="navy"
-          value={detail.name}
-          label="conference name"
-          placeholder="Untitled conference"
-          textClassName="font-heading text-[17px] font-semibold leading-snug"
-          validate={(value) => (value.trim() ? null : "Enter a name for the conference.")}
-          onSave={(name) => onRename(name.trim())}
-        />
+        {/* The revision tag rides on the name line, where the name can truncate to make room; the line
+            under it (hotel, dates, timezone) is the one that runs out of space in a laptop-width bar. */}
+        <div className="flex min-w-0 items-center gap-2">
+          <div className="min-w-0 has-[input]:flex-1">
+            <EditableCell
+              tone="navy"
+              value={detail.name}
+              label="conference name"
+              placeholder="Untitled conference"
+              textClassName="font-heading text-[17px] font-semibold leading-snug"
+              validate={(value) => (value.trim() ? null : "Enter a name for the conference.")}
+              onSave={(name) => onRename(name.trim())}
+            />
+          </div>
+          {detail.revision_number > 1 && (
+            <span className="shrink-0 whitespace-nowrap rounded-sm bg-navy-2 px-1.5 py-0.5 text-[11px] font-semibold leading-none text-white/85">
+              Revision {detail.revision_number}
+            </span>
+          )}
+        </div>
         <div className="flex min-w-0 items-center gap-1.5 whitespace-nowrap text-xs font-medium text-white/75">
           {place && (
             <>
-              <span className="min-w-0 truncate" title={place}>
+              {/* Truncates, but never below ~18 characters ("The Demo Resort · L…"), so the hotel stays readable. */}
+              <span className="min-w-[8rem] truncate" title={place}>
                 {place}
               </span>
               <span aria-hidden="true">·</span>
@@ -191,12 +213,6 @@ export function ConferenceContext({
           <span className="tabular shrink-0">{dateRange(detail.first_date, detail.last_date)}</span>
           <span aria-hidden="true">·</span>
           <TimezonePicker timezone={detail.timezone} onSave={onTimezone} />
-          {detail.revision_number > 1 && (
-            <>
-              <span aria-hidden="true">·</span>
-              <span className="shrink-0">Revision {detail.revision_number}</span>
-            </>
-          )}
         </div>
       </div>
       <input
@@ -220,9 +236,9 @@ export function ConferenceContext({
         onClick={() => fileRef.current?.click()}
         icon={<FileUp className="size-3.5" aria-hidden="true" />}
         title="Upload the broker's revised schedule; you review what changed before anything moves"
-        className="max-[1919px]:w-8 max-[1919px]:px-0"
+        className="max-[1920px]:w-8 max-[1920px]:px-0"
       >
-        <span className="max-[1919px]:sr-only">{uploading ? "Reading the PDF…" : "Upload revised PDF"}</span>
+        <span className="max-[1920px]:sr-only">{uploading ? "Reading the PDF…" : "Upload revised PDF"}</span>
       </Button>
     </>
   );
