@@ -10,7 +10,7 @@ from mcs.config import REPO_ROOT
 from mcs.extraction.schema import parse_extraction
 
 SAMPLES = REPO_ROOT / "samples"
-EXPECTED_COUNTS = {"broker_a_grid": 12, "broker_b_by_company": 8, "broker_c_itinerary": 6}
+EXPECTED_COUNTS = {"broker_a_grid": 12, "broker_a_grid_v2": 12, "broker_b_by_company": 8, "broker_c_itinerary": 6}
 
 
 def _load_script():

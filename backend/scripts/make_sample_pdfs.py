@@ -3,6 +3,7 @@
 Every company, person, broker and hotel here is fictional.
 Run from backend/: uv run python scripts/make_sample_pdfs.py
 """
+import copy
 import datetime as dt
 import json
 from pathlib import Path
@@ -52,6 +53,22 @@ BROKER_A = {
         mt("2026-11-11", "15:00", "15:45", "group", "Salon 4", "Granite Bay Logistics", "GBLG", ["Eli Turner, CFO"], ["Morgan Diaz", "Riley Chen"], 2),
     ],
 }
+
+
+def _broker_a_v2() -> dict:
+    d = copy.deepcopy(BROKER_A)
+    rows = {m["company"]: m for m in d["meetings"]}
+    rows["Cobalt Freight Lines"].update(start="14:30", end="15:15")
+    rows["Meridian Rail Holdings"]["room"] = "Suite 1505"
+    rows["Halcyon Aerostructures"]["firm_attendees"] = ["Taylor Brooks", "Jordan Lee"]
+    d["meetings"] = [m for m in d["meetings"] if m["company"] != "Tidewater Pumps"]
+    d["meetings"].append(mt("2026-11-11", "16:00", "16:45", "one_on_one", "Salon 2", "Atlas Rail Systems", "ATRL",
+                            ["Ben Okoro, CFO"], ["Avery Kim"], 2))
+    d["meetings"].sort(key=lambda m: (m["date"], m["start"]))
+    return d
+
+
+BROKER_A_V2 = _broker_a_v2()
 
 BROKER_B = {
     "conference_name": "Technology Summit 2026", "broker": "Demo Partners Securities",
@@ -127,10 +144,14 @@ def _header(lines: list[str]) -> list:
     return story + [Spacer(1, 10)]
 
 
-def build_a(out: Path) -> None:
-    d = BROKER_A
-    story = _header([d["conference_name"], f"Hosted by {d['broker']}", f"{d['hotel']} · {d['city']}",
-                     "November 10–11, 2026", f"Meeting schedule for: {d['schedule_for']}"])
+def build_a(out: Path, data: dict = BROKER_A, filename: str = "broker_a_grid.pdf", note: str | None = None) -> None:
+    d = data
+    header_lines = [d["conference_name"], f"Hosted by {d['broker']}", f"{d['hotel']} · {d['city']}",
+                     "November 10–11, 2026"]
+    if note:
+        header_lines.append(note)
+    header_lines.append(f"Meeting schedule for: {d['schedule_for']}")
+    story = _header(header_lines)
     for i, day in enumerate(["2026-11-10", "2026-11-11"]):
         if i:
             story.append(PageBreak())
@@ -142,7 +163,7 @@ def build_a(out: Path) -> None:
                          Paragraph("; ".join(m["company_attendees"]), SMALL),
                          Paragraph(", ".join(m["firm_attendees"]), SMALL)])
         story += [_table(rows, [85, 40, 70, 120, 120, 97]), Spacer(1, 12), Paragraph(FOOTER, SMALL)]
-    _doc(out / "broker_a_grid.pdf").build(story)
+    _doc(out / filename).build(story)
 
 
 def build_b(out: Path) -> None:
@@ -185,9 +206,11 @@ def _write_json(path: Path, data) -> None:
 def main(out: Path = SAMPLES) -> None:
     out.mkdir(parents=True, exist_ok=True)
     build_a(out)
+    build_a(out, BROKER_A_V2, "broker_a_grid_v2.pdf", "Revised November 3, 2026 — replaces the earlier schedule")
     build_b(out)
     build_c(out)
-    for name, data in (("broker_a_grid", BROKER_A), ("broker_b_by_company", BROKER_B), ("broker_c_itinerary", BROKER_C)):
+    for name, data in (("broker_a_grid", BROKER_A), ("broker_a_grid_v2", BROKER_A_V2),
+                       ("broker_b_by_company", BROKER_B), ("broker_c_itinerary", BROKER_C)):
         _write_json(out / f"{name}.expected.json", data)
     _write_json(out / "roster.sample.json", ROSTER)
 
