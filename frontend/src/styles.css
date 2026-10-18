@@ -1,0 +1,78 @@
+@import "tailwindcss";
+@import "@fontsource-variable/figtree";
+@import "@fontsource-variable/manrope";
+@import "@fontsource/libre-baskerville/400.css";
+
+/* Woodline Partners theme (spec §2, §9; .impeccable/mocks/decision/assigned.html). */
+@theme {
+  --color-navy: #182958;
+  --color-navy-2: #283968;
+  --color-navy-3: #101d42; /* pressed primary */
+  --color-blue: #475b90;
+  --color-cream: #f9f7ed;
+  --color-cream-2: #f2efdb;
+  --color-beige: #e3deb0;
+  --color-beige-2: #ece8c4; /* beige hover on navy */
+  --color-beige-3: #d6d09a; /* beige pressed */
+  --color-line: #e6e1c7;
+  --color-line-strong: #d6d0ae; /* hover borders, switch track */
+  --color-rule: #efebd6; /* hairline between table rows */
+  --color-head: #fbfaf3; /* table header ground */
+  --color-select: #eef0f8; /* selected row tint */
+  --color-stamp: #c9c4a8; /* muted stamp border */
+  --color-ink: #1c2340;
+  --color-muted: #5f6585;
+  --color-red: #c42b3b;
+  --color-red-bg: #fdf1f2;
+  --color-red-line: #f3c7cc;
+  --color-red-on-navy: #f6a3ab;
+  --color-green: #2f7d32;
+  --color-amber: #8a5a12;
+  --color-amber-bg: #fbf3e4;
+  --color-amber-line: #ecd3a4;
+  --font-sans: "Manrope Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-heading: "Figtree Variable", "Manrope Variable", ui-sans-serif, sans-serif;
+  --font-wordmark: "Libre Baskerville", Georgia, serif;
+}
+
+/* Base rules live in the base layer so utilities (e.g. a beige focus ring on navy) can override them. */
+@layer base {
+  html {
+    background: var(--color-cream);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    color-scheme: light;
+    -webkit-font-smoothing: antialiased;
+  }
+  body { background: var(--color-cream); }
+  h1, h2, h3 { font-family: var(--font-heading); text-wrap: balance; }
+  ::selection { background: var(--color-beige); color: var(--color-navy); }
+  :focus-visible { outline: 2px solid var(--color-navy); outline-offset: 2px; }
+  .on-navy :focus-visible { outline-color: var(--color-beige); }
+  input, textarea, select { caret-color: var(--color-navy); }
+  ::placeholder { color: var(--color-muted); opacity: 1; }
+  a { text-underline-offset: 3px; }
+
+  * { scrollbar-color: var(--color-stamp) transparent; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-stamp);
+    border: 2px solid var(--color-cream);
+    border-radius: 999px;
+  }
+}
+
+.tabular { font-variant-numeric: tabular-nums; }
+
+/* The one authored motion: the extraction progress bar sweeping while Claude reads the PDF. */
+@keyframes mcs-sweep {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(260%); }
+}
+.progress-sweep { animation: mcs-sweep 1.8s cubic-bezier(0.45, 0, 0.2, 1) infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .progress-sweep { animation-duration: 4s; }
+  *, ::before, ::after { transition-duration: 0.01ms !important; }
+}
