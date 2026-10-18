@@ -12,6 +12,8 @@ __pycache__/
 # node
 node_modules/
 frontend/dist/
+deploy/cloudflare/node_modules/
+deploy/cloudflare/.wrangler/
 
 .DS_Store
 

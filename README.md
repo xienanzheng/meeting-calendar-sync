@@ -95,7 +95,7 @@ cd deploy/cloudflare && npm ci
 npx wrangler login
 npx wrangler deploy
 npx wrangler secret put APP_PASSWORD
-npx wrangler secret put ANTHROPIC_API_KEY
+security find-generic-password -s meeting-calendar-sync.anthropic-api-key -w | tr -d '\n' | npx wrangler secret put ANTHROPIC_API_KEY
 ```
 
 ## Development
