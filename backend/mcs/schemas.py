@@ -60,6 +60,12 @@ class Counts(BaseModel):
     pending_actions: int = 0
 
 
+class SyncSummary(BaseModel):
+    ok: int
+    failed: int
+    message: str
+
+
 class ConferenceSummary(BaseModel):
     id: int
     name: str
@@ -79,6 +85,7 @@ class ConferenceDetail(ConferenceSummary):
     extractor: str
     meetings: list[MeetingOut]
     skipped_items: int = 0
+    last_sync: SyncSummary | None = None
 
 
 class AnalystIn(BaseModel):

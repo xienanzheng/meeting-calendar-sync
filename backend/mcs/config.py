@@ -32,6 +32,7 @@ class Settings(BaseSettings):
     max_upload_mb: int = 20
     use_keychain: bool = True
     ephemeral: bool = False  # hosted demo: data resets when the container sleeps
+    auto_sync: bool = True  # approval sends: sync calendars after every approval-type change
     foundry_resource: str | None = Field(
         default=None, validation_alias=AliasChoices("ANTHROPIC_FOUNDRY_RESOURCE", "foundry_resource")
     )

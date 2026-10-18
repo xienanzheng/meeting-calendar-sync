@@ -95,31 +95,38 @@ def test_default_attendees_are_applied(client):
     assert all("Morgan Diaz" in [a["name"] for a in m["attendees"]] for m in d["meetings"])
 
 
-def test_review_verify_send_and_download(client):
-    d = upload(client).json()
-    cid = d["id"]
-    tide = company(d, "Tidewater Pumps")
-    r = client.post(f"/api/meetings/{tide['id']}/confirm")
-    assert r.status_code == 409 and {"no_attendee"} <= {f["code"] for f in r.json()["flags"]}
-    d = client.patch(f"/api/meetings/{tide['id']}", json={"attendee_ids": [people(client)["Jordan Lee"]],
-                                                          "ignored_names": ["Chris Wong"]}).json()
-    assert company(d, "Tidewater Pumps")["flags"] == []
-    d = client.post(f"/api/conferences/{cid}/confirm-ready", json={}).json()
-    assert d["counts"]["verified"] == 12
-    preview = client.post(f"/api/conferences/{cid}/send?dry_run=true").json()
-    assert preview["dry_run"] is True and {a["kind"] for a in preview["actions"]} == {"create"}
-    done = client.post(f"/api/conferences/{cid}/send?dry_run=false").json()
-    assert done["failed_count"] == 0 and done["ok_count"] == len(preview["actions"])
-    avery = people(client)["Avery Kim"]
-    ics = client.get(f"/api/conferences/{cid}/ics/{avery}")
-    assert ics.status_code == 200 and ics.headers["content-type"].startswith("text/calendar")
-    assert "attachment" in ics.headers["content-disposition"] and "avery-kim" in ics.headers["content-disposition"]
-    assert len(Calendar.from_ical(ics.content).walk("VEVENT")) == 4  # Avery: NWRB, CBFL, KSVC, SMFI
-    z = client.get(f"/api/conferences/{cid}/ics.zip")
-    assert z.headers["content-type"] == "application/zip"
-    assert "avery-kim.ics" in zipfile.ZipFile(io.BytesIO(z.content)).namelist()
-    assert client.get(f"/api/conferences/{cid}/send?dry_run=true").status_code == 405
-    assert client.post(f"/api/conferences/{cid}/send?dry_run=true").json()["actions"] == []
+def test_review_verify_send_and_download(settings, tmp_path):
+    # Manual send path: auto-sync off so confirm-ready doesn't already send (Task 10A).
+    settings.auto_sync = False
+    settings.frontend_dist = tmp_path / "no-dist"
+    application = create_app(settings)
+    with Session(application.state.engine) as s:
+        service.seed_roster(s, SAMPLES / "roster.sample.json")
+    with TestClient(application) as client:
+        d = upload(client).json()
+        cid = d["id"]
+        tide = company(d, "Tidewater Pumps")
+        r = client.post(f"/api/meetings/{tide['id']}/confirm")
+        assert r.status_code == 409 and {"no_attendee"} <= {f["code"] for f in r.json()["flags"]}
+        d = client.patch(f"/api/meetings/{tide['id']}", json={"attendee_ids": [people(client)["Jordan Lee"]],
+                                                              "ignored_names": ["Chris Wong"]}).json()
+        assert company(d, "Tidewater Pumps")["flags"] == []
+        d = client.post(f"/api/conferences/{cid}/confirm-ready", json={}).json()
+        assert d["counts"]["verified"] == 12
+        preview = client.post(f"/api/conferences/{cid}/send?dry_run=true").json()
+        assert preview["dry_run"] is True and {a["kind"] for a in preview["actions"]} == {"create"}
+        done = client.post(f"/api/conferences/{cid}/send?dry_run=false").json()
+        assert done["failed_count"] == 0 and done["ok_count"] == len(preview["actions"])
+        avery = people(client)["Avery Kim"]
+        ics = client.get(f"/api/conferences/{cid}/ics/{avery}")
+        assert ics.status_code == 200 and ics.headers["content-type"].startswith("text/calendar")
+        assert "attachment" in ics.headers["content-disposition"] and "avery-kim" in ics.headers["content-disposition"]
+        assert len(Calendar.from_ical(ics.content).walk("VEVENT")) == 4  # Avery: NWRB, CBFL, KSVC, SMFI
+        z = client.get(f"/api/conferences/{cid}/ics.zip")
+        assert z.headers["content-type"] == "application/zip"
+        assert "avery-kim.ics" in zipfile.ZipFile(io.BytesIO(z.content)).namelist()
+        assert client.get(f"/api/conferences/{cid}/send?dry_run=true").status_code == 405
+        assert client.post(f"/api/conferences/{cid}/send?dry_run=true").json()["actions"] == []
 
 
 def test_ics_for_unsent_colleague_is_404(client):

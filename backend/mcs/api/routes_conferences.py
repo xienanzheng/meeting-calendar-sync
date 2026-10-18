@@ -8,6 +8,7 @@ from fastapi.responses import FileResponse
 from sqlmodel import Session
 
 from mcs import service
+from mcs.api.autosync import auto_sync
 from mcs.api.deps import get_app_settings, get_session
 from mcs.calendar.graph_auth import GraphAuthError
 from mcs.calendar.ics import analyst_slug, render_ics, zip_files
@@ -18,6 +19,13 @@ from mcs.schemas import (
 )
 
 router = APIRouter(prefix="/api/conferences")
+
+
+def _synced_detail(request: Request, session: Session, conference_id: int, settings: Settings) -> ConferenceDetail:
+    summary = auto_sync(request, session, conference_id)
+    detail = service.conference_detail(session, conference_id, settings.calendar_sink)
+    detail.last_sync = summary
+    return detail
 
 
 def _parse_ids(raw: str) -> list[int]:
@@ -74,10 +82,10 @@ def get_conference(conference_id: int, session: Session = Depends(get_session),
 
 
 @router.patch("/{conference_id}", response_model=ConferenceDetail)
-def patch_conference(conference_id: int, body: ConferenceUpdate, session: Session = Depends(get_session),
-                     settings: Settings = Depends(get_app_settings)):
+def patch_conference(conference_id: int, body: ConferenceUpdate, request: Request,
+                     session: Session = Depends(get_session), settings: Settings = Depends(get_app_settings)):
     service.update_conference(session, conference_id, body)
-    return service.conference_detail(session, conference_id, settings.calendar_sink)
+    return _synced_detail(request, session, conference_id, settings)
 
 
 @router.delete("/{conference_id}", status_code=204)
@@ -101,17 +109,17 @@ def get_pdf(conference_id: int, session: Session = Depends(get_session)):
 
 
 @router.post("/{conference_id}/meetings", response_model=ConferenceDetail, status_code=201)
-def add_meeting(conference_id: int, body: MeetingCreate, session: Session = Depends(get_session),
-                settings: Settings = Depends(get_app_settings)):
+def add_meeting(conference_id: int, body: MeetingCreate, request: Request,
+                session: Session = Depends(get_session), settings: Settings = Depends(get_app_settings)):
     service.add_meeting(session, conference_id, body, settings.default_meeting_minutes)
-    return service.conference_detail(session, conference_id, settings.calendar_sink)
+    return _synced_detail(request, session, conference_id, settings)
 
 
 @router.post("/{conference_id}/confirm-ready", response_model=ConferenceDetail)
-def confirm_ready(conference_id: int, body: ConfirmReadyIn | None = None, session: Session = Depends(get_session),
-                  settings: Settings = Depends(get_app_settings)):
+def confirm_ready(conference_id: int, request: Request, body: ConfirmReadyIn | None = None,
+                  session: Session = Depends(get_session), settings: Settings = Depends(get_app_settings)):
     service.confirm_ready(session, conference_id, body.meeting_ids if body else None)
-    return service.conference_detail(session, conference_id, settings.calendar_sink)
+    return _synced_detail(request, session, conference_id, settings)
 
 
 @router.post("/{conference_id}/send", response_model=SendResult)
