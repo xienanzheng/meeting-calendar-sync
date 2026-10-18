@@ -66,6 +66,48 @@ class SyncSummary(BaseModel):
     message: str
 
 
+class FieldChangeOut(BaseModel):
+    field: str
+    before: str | list[str] | None
+    after: str | list[str] | None
+
+
+class ProposedMeeting(BaseModel):
+    date: str | None = None
+    start: str | None = None
+    end: str | None = None
+    room: str | None = None
+    company: str
+    ticker: str | None = None
+    format: Format = "one_on_one"
+    firm_attendees: list[str] = Field(default_factory=list)
+    company_attendees: list[str] = Field(default_factory=list)
+    page: int | None = None
+
+
+class ChangeOut(BaseModel):
+    id: str
+    kind: Literal["changed", "added", "removed"]
+    meeting_id: int | None
+    company: str
+    summary: str
+    fields: list[FieldChangeOut]
+    new: ProposedMeeting | None
+
+
+class RevisionOut(BaseModel):
+    id: int
+    number: int
+    pdf_filename: str
+    created_at: dt.datetime
+    changes: list[ChangeOut]
+    unchanged_count: int
+
+
+class ApplyRevisionIn(BaseModel):
+    accepted: list[str] | None = None  # change ids to apply; None applies them all
+
+
 class ConferenceSummary(BaseModel):
     id: int
     name: str
@@ -86,6 +128,8 @@ class ConferenceDetail(ConferenceSummary):
     meetings: list[MeetingOut]
     skipped_items: int = 0
     last_sync: SyncSummary | None = None
+    pending_revision: RevisionOut | None = None
+    revision_number: int = 1
 
 
 class AnalystIn(BaseModel):

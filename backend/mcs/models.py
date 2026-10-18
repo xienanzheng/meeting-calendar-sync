@@ -46,9 +46,22 @@ class Meeting(SQLModel, table=True):
     ignored_names: list[str] = Field(default_factory=list, sa_column=Column(JSON, nullable=False))
     notes: str = ""
     source_page: int | None = None
+    source_json: str = ""  # the broker's last applied row (ExtractedMeeting JSON); empty for manual meetings
     status: str = "draft"  # draft | confirmed | cancelled
     created_at: dt.datetime = Field(default_factory=utcnow)
     updated_at: dt.datetime = Field(default_factory=utcnow)
+
+
+class Revision(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    conference_id: int = Field(foreign_key="conference.id", index=True)
+    number: int
+    pdf_filename: str = ""
+    pdf_path: str = ""
+    extractor: str = ""
+    status: str = "pending"  # pending | applied | discarded
+    result_json: str = ""  # the full revised ExtractionResult as JSON
+    created_at: dt.datetime = Field(default_factory=utcnow)
 
 
 class MeetingAttendee(SQLModel, table=True):

@@ -9,10 +9,11 @@ from sqlmodel import Session, select
 
 from mcs.calendar.content import build_event
 from mcs.calendar.planner import SyncAction, SyncOutcome, plan_sync
-from mcs.extraction.schema import ExtractionResult
-from mcs.models import Analyst, Conference, Meeting, MeetingAttendee, SyncRecord, utcnow
+from mcs.extraction.schema import ExtractedMeeting, ExtractionResult
+from mcs.models import Analyst, Conference, Meeting, MeetingAttendee, Revision, SyncRecord, utcnow
 from mcs.normalize import (
-    MeetingView, add_minutes, build_meetings, compute_flags, has_block, parse_date, parse_time, valid_timezone,
+    DraftMeeting, MeetingView, add_minutes, build_meetings, compute_flags, has_block, parse_date, parse_time,
+    valid_timezone,
 )
 from mcs.roster import RosterEntry, match_name, normalize_name, roster_entries
 from mcs.schemas import (
@@ -67,6 +68,10 @@ def _roster(session: Session) -> list[RosterEntry]:
     return roster_entries(session.exec(select(Analyst)).all())
 
 
+def roster_for(session: Session) -> list[RosterEntry]:
+    return _roster(session)
+
+
 def _meetings(session: Session, conference_id: int) -> list[Meeting]:
     return list(session.exec(select(Meeting).where(Meeting.conference_id == conference_id)).all())
 
@@ -117,6 +122,11 @@ def _enforce_status(session: Session, conference: Conference) -> None:
             changed = True
     if changed:
         session.commit()
+
+
+def enforce_status(session: Session, conference: Conference) -> None:
+    """A verified meeting never carries a block flag: drop any that do back to draft."""
+    _enforce_status(session, conference)
 
 
 def _active_ids(session: Session, analyst_ids: Sequence[int]) -> list[int]:
@@ -218,20 +228,28 @@ def create_conference(session: Session, result: ExtractionResult, *, pdf_filenam
     )
     session.add(conference)
     session.flush()
-    for draft in build_meetings(result, _roster(session), defaults, default_minutes):
-        meeting = Meeting(
-            conference_id=conference.id, date=draft.date, start_time=draft.start_time, end_time=draft.end_time,
-            end_assumed=draft.end_assumed, room=draft.room, company=draft.company, ticker=draft.ticker,
-            format=draft.format, company_attendees=draft.company_attendees,
-            raw_attendee_names=draft.raw_attendee_names, notes=draft.notes, source_page=draft.source_page,
-        )
-        session.add(meeting)
-        session.flush()
-        for analyst_id, kind in draft.attendees:
-            session.add(MeetingAttendee(meeting_id=meeting.id, analyst_id=analyst_id, match=kind))
+    drafts = build_meetings(result, _roster(session), defaults, default_minutes)
+    for draft, source in zip(drafts, result.meetings, strict=True):
+        insert_draft(session, conference.id, draft, source)
     session.commit()
     session.refresh(conference)
     return conference
+
+
+def insert_draft(session: Session, conference_id: int, draft: DraftMeeting, source: ExtractedMeeting) -> Meeting:
+    """Add one meeting built from a broker row, with that row as its baseline. Flushes, doesn't commit."""
+    meeting = Meeting(
+        conference_id=conference_id, date=draft.date, start_time=draft.start_time, end_time=draft.end_time,
+        end_assumed=draft.end_assumed, room=draft.room, company=draft.company, ticker=draft.ticker,
+        format=draft.format, company_attendees=draft.company_attendees,
+        raw_attendee_names=draft.raw_attendee_names, notes=draft.notes, source_page=draft.source_page,
+        source_json=source.model_dump_json(),
+    )
+    session.add(meeting)
+    session.flush()
+    for analyst_id, kind in draft.attendees:
+        session.add(MeetingAttendee(meeting_id=meeting.id, analyst_id=analyst_id, match=kind))
+    return meeting
 
 
 def update_conference(session: Session, conference_id: int, data: ConferenceUpdate) -> Conference:
@@ -261,6 +279,7 @@ def delete_conference(session: Session, conference_id: int) -> str:
         session.execute(delete(SyncRecord).where(SyncRecord.meeting_id.in_(meeting_ids)))
         session.execute(delete(MeetingAttendee).where(MeetingAttendee.meeting_id.in_(meeting_ids)))
         session.execute(delete(Meeting).where(Meeting.id.in_(meeting_ids)))
+    session.execute(delete(Revision).where(Revision.conference_id == conference_id))
     pdf_path = conference.pdf_path
     session.delete(conference)
     session.commit()
@@ -517,6 +536,8 @@ def _unmatched(meeting: Meeting, attendee_ids: set[int], roster: list[RosterEntr
 
 
 def conference_detail(session: Session, conference_id: int, sink_name: str, skipped_items: int = 0) -> ConferenceDetail:
+    from mcs import revision_service  # imported here: revision_service builds on this module
+
     conference = get_conference(session, conference_id)
     meetings = sorted(_meetings(session, conference_id), key=_sort_key)
     flags, att = _flags(session, conference, meetings)
@@ -570,12 +591,15 @@ def conference_detail(session: Session, conference_id: int, sink_name: str, skip
         pending_actions=len(plan_conference(session, conference_id, sink_name)),
     )
     dates = [m.date for m in meetings if m.date]
+    pending = revision_service.pending_revision(session, conference_id)
     return ConferenceDetail(
         id=conference.id, name=conference.name, broker=conference.broker, hotel=conference.hotel,
         city=conference.city, timezone=conference.timezone, created_at=conference.created_at,
         first_date=min(dates).isoformat() if dates else None, last_date=max(dates).isoformat() if dates else None,
         counts=counts, schedule_for=conference.schedule_for, pdf_filename=conference.pdf_filename,
         extractor=conference.extractor, meetings=out, skipped_items=skipped_items,
+        pending_revision=revision_service.revision_out(session, pending) if pending else None,
+        revision_number=1 + revision_service.applied_count(session, conference_id),
     )
 
 

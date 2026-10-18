@@ -14,4 +14,13 @@ def make_engine(settings: Settings) -> Engine:
         dbapi_connection.execute("PRAGMA foreign_keys=ON")
 
     SQLModel.metadata.create_all(engine)
+    _upgrade(engine)
     return engine
+
+
+def _upgrade(engine: Engine) -> None:
+    """Bring older local databases up to date (create_all never alters existing tables)."""
+    with engine.begin() as conn:
+        columns = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(meeting)")}
+        if "source_json" not in columns:
+            conn.exec_driver_sql("ALTER TABLE meeting ADD COLUMN source_json VARCHAR NOT NULL DEFAULT ''")
