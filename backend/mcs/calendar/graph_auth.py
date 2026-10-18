@@ -35,10 +35,11 @@ class GraphAuth:
     def _application(self):
         if not self.configured:
             raise GraphAuthError("Microsoft Graph is not configured. Set MCS_GRAPH_CLIENT_ID and MCS_GRAPH_TENANT_ID.")
-        if self._app is None:
-            self._app = self._app_factory(self.client_id,
-                                          authority=f"https://login.microsoftonline.com/{self.tenant_id}")
-        return self._app
+        with self._lock:
+            if self._app is None:
+                self._app = self._app_factory(self.client_id,
+                                              authority=f"https://login.microsoftonline.com/{self.tenant_id}")
+            return self._app
 
     def start_device_flow(self) -> dict:
         app = self._application()
@@ -61,8 +62,10 @@ class GraphAuth:
 
     def status(self) -> dict:
         signed_in, account = False, None
-        if self.configured and self._app is not None:
-            accounts = self._app.get_accounts()
+        with self._lock:
+            app = self._app
+        if self.configured and app is not None:
+            accounts = app.get_accounts()
             if accounts:
                 signed_in, account = True, accounts[0].get("username")
         with self._lock:

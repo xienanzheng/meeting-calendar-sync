@@ -1,3 +1,5 @@
+import threading
+
 import pytest
 
 from mcs.calendar.graph_auth import SCOPES, GraphAuth, GraphAuthError
@@ -90,3 +92,33 @@ def test_flow_start_error():
     auth, _ = make(flow={"error": "invalid_client", "error_description": "Public client flows are disabled"})
     with pytest.raises(GraphAuthError, match="Public client flows are disabled"):
         auth.start_device_flow()
+
+
+def test_application_creation_is_thread_safe():
+    call_count = [0]
+    apps_created = []
+
+    def counting_factory(client_id, authority):
+        call_count[0] += 1
+        app = FakeApp(client_id, authority)
+        apps_created.append(app)
+        return app
+
+    auth = GraphAuth("client-id", "tenant-id", app_factory=counting_factory, run_in_background=lambda fn: fn())
+
+    barrier = threading.Barrier(8)
+    results = []
+
+    def worker():
+        barrier.wait()  # Synchronize all threads at the same point
+        app = auth._application()
+        results.append(app)
+
+    threads = [threading.Thread(target=worker) for _ in range(8)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    assert call_count[0] == 1, f"Factory should be called exactly once, but was called {call_count[0]} times"
+    assert len(set(id(app) for app in results)) == 1, "All threads should get the same app instance"
