@@ -8,7 +8,7 @@ from mcs import service
 from mcs.calendar.ics import IcsSink
 from mcs.config import REPO_ROOT
 from mcs.extraction.schema import ExtractedMeeting, parse_extraction
-from mcs.models import Meeting, Revision
+from mcs.models import Meeting, Revision, SyncRecord
 from mcs.schemas import ConferenceUpdate, MeetingCreate, MeetingUpdate
 
 SAMPLES = REPO_ROOT / "samples"
@@ -175,3 +175,72 @@ def test_delete_conference_removes_revisions(seeded):
     assert rs.revision_pdf_paths(seeded, conf.id) == ["/tmp/broker_a_grid_v2.pdf"]
     service.delete_conference(seeded, conf.id)
     assert seeded.exec(select(Revision)).all() == []
+
+
+def test_dismissed_names_stay_dismissed(seeded):
+    conf = conf_a(seeded)
+    halcyon = meeting(seeded, "Halcyon Aerostructures")
+    service.update_meeting(seeded, halcyon.id, MeetingUpdate(attendee_ids=[], ignored_names=["Taylor Brooks"]), 45)
+    rev, _ = revise(seeded, conf)
+    rs.apply_revision(seeded, rev.id, None, 45)
+    assert attendee_names(seeded, conf.id, "Halcyon Aerostructures") == ["Jordan Lee"]
+
+
+def test_dismissed_addressee_is_not_the_fallback(seeded):
+    itinerary = sample("broker_c_itinerary")  # addressed to Sam Patel; rows list nobody
+    first = itinerary.meetings[0]
+    base = itinerary.model_copy(update={"meetings": [first.model_copy(update={"firm_attendees": ["Avery Kim"]}),
+                                                     *itinerary.meetings[1:]]})
+    conf = service.create_conference(seeded, base, pdf_filename="c.pdf", pdf_path="/tmp/c.pdf", extractor="fake")
+    row = meeting(seeded, first.company)
+    service.update_meeting(seeded, row.id, MeetingUpdate(ignored_names=["Sam Patel"]), 45)
+    rev, _ = rs.create_revision(seeded, conf, itinerary, pdf_filename="c2.pdf", pdf_path="/tmp/c2.pdf",
+                                extractor="fake")
+    rs.apply_revision(seeded, rev.id, None, 45)
+    assert attendee_names(seeded, conf.id, first.company) == []
+
+
+def sent_conf_a(s):
+    conf = conf_a(s)
+    service.confirm_ready(s, conf.id)
+    service.send_conference(s, conf.id, IcsSink())
+    return conf
+
+
+def planned_for(s, conf_id, company):
+    mid = meeting(s, company).id
+    return sorted((a.kind, a.analyst_name) for a in service.plan_conference(s, conf_id, "ics") if a.meeting_id == mid)
+
+
+def test_unsynced_manual_edit_still_updates_after_apply(seeded):
+    conf = sent_conf_a(seeded)
+    lumen = meeting(seeded, "Lumen Sensor Works")
+    service.update_meeting(seeded, lumen.id, MeetingUpdate(room="Salon 9"), 45)  # not synced yet
+    rev, _ = revise(seeded, conf)
+    rs.apply_revision(seeded, rev.id, None, 45)
+    assert planned_for(seeded, conf.id, "Lumen Sensor Works") == [("update", "Jordan Lee")]
+
+
+def test_source_page_or_pdf_name_alone_plans_nothing(seeded):
+    conf = sent_conf_a(seeded)
+    revised = sample("broker_a_grid_v2")
+    rows = [m.model_copy(update={"page": 3}) if m.company == "Northwind Robotics" else m for m in revised.meetings]
+    rev, _ = rs.create_revision(seeded, conf, revised.model_copy(update={"meetings": rows}),
+                                pdf_filename="broker_a_grid_v2.pdf", pdf_path="/tmp/v2.pdf", extractor="fake")
+    rs.apply_revision(seeded, rev.id, None, 45)
+    northwind = meeting(seeded, "Northwind Robotics")
+    assert northwind.source_page == 3
+    assert planned_for(seeded, conf.id, "Northwind Robotics") == []  # page and PDF name changed
+    assert planned_for(seeded, conf.id, "Borealis Grid Systems") == []  # PDF name changed
+    record = seeded.exec(select(SyncRecord).where(SyncRecord.meeting_id == northwind.id)).first()
+    assert "Source: broker_a_grid.pdf, page 1" in record.content_json  # still what was actually sent
+
+
+def test_real_changes_update_every_colleague(seeded):
+    conf = sent_conf_a(seeded)
+    rev, _ = revise(seeded, conf)
+    rs.apply_revision(seeded, rev.id, None, 45)
+    assert planned_for(seeded, conf.id, "Cobalt Freight Lines") == [("update", "Avery Kim"), ("update", "Riley Chen")]
+    cobalt = meeting(seeded, "Cobalt Freight Lines").id
+    bodies = {a.content.body for a in service.plan_conference(seeded, conf.id, "ics") if a.meeting_id == cobalt}
+    assert all(b.endswith("Source: broker_a_grid_v2.pdf, page 1") for b in bodies)

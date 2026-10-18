@@ -15,7 +15,7 @@ from mcs.extraction.schema import ExtractedMeeting, ExtractionResult
 from mcs.models import Analyst, Conference, Meeting, MeetingAttendee, Revision, SyncRecord, utcnow
 from mcs.normalize import add_minutes, build_meetings, parse_date, parse_time
 from mcs.revisions import Change, RevisionDiff, diff_revision
-from mcs.roster import NO_MATCH, MatchResult, RosterEntry, match_name, normalize_name
+from mcs.roster import RosterEntry, match_name, normalize_name
 from mcs.schemas import ChangeOut, FieldChangeOut, ProposedMeeting, RevisionOut
 
 
@@ -138,19 +138,25 @@ def _refresh_baseline(meeting: Meeting, row: ExtractedMeeting) -> None:
     meeting.source_page = row.page
 
 
-def _set_matched_attendees(session: Session, meeting: Meeting, names: Sequence[str], addressee: MatchResult,
+def _set_matched_attendees(session: Session, meeting: Meeting, names: Sequence[str], schedule_for: str | None,
                            roster: Sequence[RosterEntry]) -> None:
-    """Re-match name-matched colleagues to the broker's new names; manual and default colleagues stay.
-    Rows are updated in place so the same (meeting_id, analyst_id) key is never deleted and re-added."""
+    """Re-match name-matched colleagues to the broker's new names; manual and default colleagues stay, and
+    names CR dismissed (ignored_names) are never matched again. Rows are updated in place so the same
+    (meeting_id, analyst_id) key is never deleted and re-added."""
     existing = {row.analyst_id: row for row in
                 session.exec(select(MeetingAttendee).where(MeetingAttendee.meeting_id == meeting.id)).all()}
+    ignored = {normalize_name(n) for n in meeting.ignored_names}
     matched: dict[int, str] = {}
     for raw in names:
+        if normalize_name(raw) in ignored:
+            continue
         match = match_name(raw, roster)
         if match.analyst_id is not None and match.analyst_id not in matched:
             matched[match.analyst_id] = match.kind
-    if not names and addressee.analyst_id is not None:
-        matched[addressee.analyst_id] = addressee.kind
+    if not names and schedule_for and normalize_name(schedule_for) not in ignored:
+        addressee = match_name(schedule_for, roster)
+        if addressee.analyst_id is not None:
+            matched[addressee.analyst_id] = addressee.kind
     # CR's manual picks win; a name match beats a default, as when the meeting was first built.
     desired = dict(matched)
     for aid, row in existing.items():
@@ -167,7 +173,7 @@ def _set_matched_attendees(session: Session, meeting: Meeting, names: Sequence[s
             session.add(MeetingAttendee(meeting_id=meeting.id, analyst_id=aid, match=kind))
 
 
-def _apply_changed(session: Session, meeting: Meeting, change: Change, addressee: MatchResult,
+def _apply_changed(session: Session, meeting: Meeting, change: Change, schedule_for: str | None,
                    roster: Sequence[RosterEntry], default_minutes: int) -> None:
     """Apply the broker's new values to the changed fields only."""
     new, fields = change.new, {f.field for f in change.fields}
@@ -199,7 +205,7 @@ def _apply_changed(session: Session, meeting: Meeting, change: Change, addressee
         meeting.company_attendees = list(new.company_attendees)
     if "firm_attendees" in fields:
         meeting.raw_attendee_names = list(new.firm_attendees)
-        _set_matched_attendees(session, meeting, new.firm_attendees, addressee, roster)
+        _set_matched_attendees(session, meeting, new.firm_attendees, schedule_for, roster)
     _refresh_baseline(meeting, new)
     meeting.updated_at = utcnow()
     session.add(meeting)
@@ -265,13 +271,12 @@ def apply_revision(session: Session, revision_id: int, accepted: Sequence[str] |
     old_pages = {m.id: m.source_page for m in
                  session.exec(select(Meeting).where(Meeting.conference_id == conference.id)).all()}
     roster = service.roster_for(session)
-    addressee = match_name(result.schedule_for, roster) if result.schedule_for else NO_MATCH
     added_ids = []
     for change in diff.changes:
         if change.id not in chosen:
             continue  # rejected: the old baseline stays, so it shows up again next time
         if change.kind == "changed":
-            _apply_changed(session, session.get(Meeting, change.meeting_id), change, addressee, roster,
+            _apply_changed(session, session.get(Meeting, change.meeting_id), change, result.schedule_for, roster,
                            default_minutes)
         elif change.kind == "removed":
             service.delete_meeting(session, change.meeting_id)
