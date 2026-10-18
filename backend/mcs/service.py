@@ -432,8 +432,9 @@ def _record_outcome(session: Session, sink_name: str, outcome: SyncOutcome) -> N
             rec.content_hash = a.content.content_hash()
             rec.content_json = a.content.to_json()
     else:
-        rec.state = "failed"
         rec.last_error = outcome.error or "Unknown error"
+        if not (a.kind == "create" and rec.state == "cancelled"):
+            rec.state = "failed"
     rec.updated_at = utcnow()
     session.add(rec)
 
@@ -482,7 +483,7 @@ def send_result(session: Session, conference_id: int, sink_name: str, items, dry
 def _sync_state(conference, meeting, analyst_id, attendee_ids, analysts, rec) -> tuple[str, str | None]:
     if rec is None:
         return "not_sent", None
-    if rec.state == "failed":
+    if rec.last_error:
         return "failed", rec.last_error
     if rec.external_id is None:
         return "not_sent", None

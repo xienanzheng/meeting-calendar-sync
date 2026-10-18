@@ -204,6 +204,34 @@ def test_partial_failure_retries_only_failed_item(seeded):
     assert detail(seeded, conf).counts.failed == 1
 
 
+def test_failed_recreate_after_cancel_stays_cancelled_for_retry(seeded):
+    conf = make_conf(seeded)
+    first = detail(seeded, conf).meetings[0]  # Northwind: Avery + Jordan
+    jordan_id = ids(seeded)["Jordan Lee"]
+    service.confirm_meeting(seeded, first.id)
+    service.send_conference(seeded, conf.id, IcsSink())
+
+    service.update_meeting(seeded, first.id, MeetingUpdate(attendee_ids=[ids(seeded)["Avery Kim"]]), 45)
+    service.send_conference(seeded, conf.id, IcsSink())  # Jordan's record -> cancelled
+    before = service.ics_records_for(seeded, conf.id, jordan_id)[0]
+    assert before.state == "cancelled"
+    before_sequence = before.sequence  # snapshot now: `before` is session-tracked and mutates in place later
+
+    service.update_meeting(seeded, first.id,
+                           MeetingUpdate(attendee_ids=[ids(seeded)["Avery Kim"], jordan_id]), 45)
+    service.send_conference(seeded, conf.id, FailFor("jordan.lee@example.com"))
+    m = by_company(detail(seeded, conf), "Northwind Robotics")
+    jordan = next(a for a in m.attendees if a.name == "Jordan Lee")
+    assert jordan.sync == "failed" and jordan.sync_error == "Graph error 500: boom"
+    retry = service.plan_conference(seeded, conf.id, "ics")
+    assert [(a.kind, a.analyst_name) for a in retry if a.analyst_id == jordan_id] == [("create", "Jordan Lee")]
+
+    service.send_conference(seeded, conf.id, IcsSink())
+    after = service.ics_records_for(seeded, conf.id, jordan_id)[0]
+    assert after.state == "active" and after.last_error is None
+    assert after.sequence > before_sequence
+
+
 def test_delete_unsent_meeting_removes_it(seeded):
     conf = make_conf(seeded)
     first = detail(seeded, conf).meetings[0]
