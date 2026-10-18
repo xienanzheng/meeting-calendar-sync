@@ -305,7 +305,12 @@ export const uploadConference = (file: File, defaultIds: number[], mode?: "auto"
 export const patchConference = (id: number, body: ConferenceUpdate) =>
   request<ConferenceDetail>(`/api/conferences/${id}`, json("PATCH", body));
 export const deleteConference = (id: number) => request<void>(`/api/conferences/${id}`, { method: "DELETE" });
-export const pdfUrl = (cid: number, page?: number | null) => `/api/conferences/${cid}/pdf${page ? `#page=${page}` : ""}`;
+/**
+ * The conference's source PDF. Applying a revision swaps the file behind the same path, so pass the
+ * conference's `revision_number` as `version`: the URL changes with it and the frame reloads.
+ */
+export const pdfUrl = (cid: number, page?: number | null, version?: number) =>
+  `/api/conferences/${cid}/pdf${version ? `?rev=${version}` : ""}${page ? `#page=${page}` : ""}`;
 export const icsUrl = (cid: number, analystId: number) => `/api/conferences/${cid}/ics/${analystId}`;
 export const icsZipUrl = (cid: number) => `/api/conferences/${cid}/ics.zip`;
 

@@ -144,7 +144,8 @@ export function stampFor(meeting: Meeting): Stamp {
       return { label: "DRAFT", tone: "muted" };
     case "verified":
       if (touched(meeting).some((a) => a.sync === "failed")) return { label: "FAILED", tone: "red" };
-      if (meeting.attendees.some((a) => a.sync === "changed")) return { label: "CHANGED — RESEND", tone: "amber" };
+      // Calendars sync on every approval, so a changed entry is simply on its way (SyncStatus says why if not).
+      if (meeting.attendees.some((a) => a.sync === "changed")) return { label: "CHANGED", tone: "amber" };
       return { label: "VERIFIED", tone: "navy" };
     case "sent":
       return { label: "SENT", tone: "green" };

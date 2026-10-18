@@ -55,6 +55,7 @@ def test_upload_review_and_pdf(client, settings):
     assert len(d["meetings"]) == 12 and d["skipped_items"] == 0 and d["extractor"] == "fake"
     pdf = client.get(f"/api/conferences/{d['id']}/pdf")
     assert pdf.status_code == 200 and pdf.headers["content-type"] == "application/pdf"
+    assert pdf.headers["cache-control"] == "no-cache"  # an applied revision swaps the file behind this URL
     assert pdf.content.startswith(b"%PDF")
     assert len(list(settings.uploads_dir.glob("*.pdf"))) == 1
     assert [c["name"] for c in client.get("/api/conferences").json()] == ["Industrials Conference 2026"]

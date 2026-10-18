@@ -137,8 +137,9 @@ def get_pdf(conference_id: int, session: Session = Depends(get_session)):
     path = Path(conference.pdf_path)
     if not path.is_file():
         raise service.NotFound("The uploaded PDF is no longer on disk.")
+    # no-cache: applying a revision swaps the file behind this same URL.
     return FileResponse(path, media_type="application/pdf", filename=conference.pdf_filename,
-                        content_disposition_type="inline")
+                        content_disposition_type="inline", headers={"Cache-Control": "no-cache"})
 
 
 @router.post("/{conference_id}/revisions", response_model=ConferenceDetail, status_code=201)

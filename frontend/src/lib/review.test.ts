@@ -68,7 +68,7 @@ describe("stamps and labels", () => {
     [m(9, { review_state: "needs_attention", flags: [{ code: "no_timezone", severity: "block", message: "" }] }), "NEEDS TIMEZONE", "red"],
     [m(10, { review_state: "needs_attention", flags: [{ code: "end_before_start", severity: "block", message: "" }] }), "CHECK TIME", "red"],
     [m(11, { review_state: "verified" }), "VERIFIED", "navy"],
-    [m(12, { review_state: "verified", attendees: [att(1, "Avery Kim", "changed")] }), "CHANGED — RESEND", "amber"],
+    [m(12, { review_state: "verified", attendees: [att(1, "Avery Kim", "changed")] }), "CHANGED", "amber"],
     [m(13, { review_state: "verified", attendees: [att(1, "Avery Kim", "failed")] }), "FAILED", "red"],
     [m(14, { review_state: "sent" }), "SENT", "green"],
     [m(15, { review_state: "cancelled" }), "CANCELLED", "struck"],

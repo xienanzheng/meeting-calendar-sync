@@ -35,7 +35,11 @@ function StatusCell({ meeting }: { meeting: Meeting }) {
   return (
     <td className={`tt-status ${cell}`}>
       <span className="inline-flex flex-wrap items-center gap-1.5">
-        <span title={blocks.length > 1 ? blocks.map((f) => f.message).join("\n") : undefined}>
+        {/* Long stamps (NEEDS COLLEAGUE) break onto two lines rather than overflow the 8rem column. */}
+        <span
+          title={blocks.length > 1 ? blocks.map((f) => f.message).join("\n") : undefined}
+          className="[&>span]:whitespace-normal [&>span]:leading-tight"
+        >
           <Stamp meeting={meeting} />
         </span>
         {warns.length > 0 && (
@@ -179,8 +183,7 @@ export function Timetable({
                   <col />
                   <col className="w-[6.5rem]" />
                   <col className="w-[8.5rem]" />
-                  {/* fits the widest stamp, CHANGED — RESEND (152px) */}
-                  <col className="w-[11rem]" />
+                  <col className="w-32" />
                 </colgroup>
                 <thead>
                   <tr className="bg-head text-left font-heading text-[11px] font-bold uppercase tracking-[0.08em] text-muted">

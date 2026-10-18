@@ -74,12 +74,14 @@
 .popover-panel[popover] { position: fixed; inset: auto; margin: 0; }
 
 /* ---------- Review timetable ----------
-   Table rows at full width; below 680px of itinerary column (or a <=900px window) each row stacks as
-   time | company / room · shared with | stamp. Unlayered, so these beat the table-mode utilities. */
+   Table rows at full width; below 616px of itinerary column (or a <=900px window) each row stacks as
+   time | company / room · shared with | stamp. The fixed columns take 474px, so 616px leaves the company
+   column 142px: with the panel docked the full table holds down to a ~1322px window (1332px with
+   classic scrollbars), covering 1366. Unlayered, so these beat the table-mode utilities. */
 .itinerary { container: itinerary / inline-size; }
 .tt-label { display: none; }
 
-@container itinerary (width < 42.5rem) {
+@container itinerary (width < 38.5rem) {
   .tt-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .tt-table, .tt-table tbody { display: block; }
   .tt-table colgroup { display: none; }

@@ -44,7 +44,8 @@ def test_revised_upload_becomes_a_pending_revision(client, settings):
     assert [c["kind"] for c in rev["changes"]] == ["changed", "changed", "changed", "removed", "added"]
     assert rev["unchanged_count"] == 8
     assert len(pdfs(settings)) == 2
-    assert client.get(f"/api/revisions/{rev['id']}/pdf").content == PDF_A2
+    rev_pdf = client.get(f"/api/revisions/{rev['id']}/pdf")
+    assert rev_pdf.content == PDF_A2 and rev_pdf.headers["cache-control"] == "no-cache"
 
 
 def test_mode_new_forces_a_new_conference(client):

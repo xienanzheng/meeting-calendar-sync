@@ -523,7 +523,9 @@ export function SourcePanel({
 }) {
   const page = revisionSource ? (revisionSource.change?.new?.page ?? null) : (meeting?.source_page ?? null);
   const filename = revisionSource ? revisionSource.revision.pdf_filename : detail.pdf_filename;
-  const src = revisionSource ? revisionPdfUrl(revisionSource.revision.id, page) : pdfUrl(detail.id, page);
+  const src = revisionSource
+    ? revisionPdfUrl(revisionSource.revision.id, page)
+    : pdfUrl(detail.id, page, detail.revision_number);
   const hidden = drawer && !open;
 
   return (
