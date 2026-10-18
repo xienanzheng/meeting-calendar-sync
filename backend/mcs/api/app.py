@@ -6,7 +6,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from mcs import service
-from mcs.api import routes_conferences, routes_meetings, routes_roster, routes_system
+from mcs.api import routes_conferences, routes_meetings, routes_revisions, routes_roster, routes_system
 from mcs.calendar import SinkNotConfigured, get_sink
 from mcs.calendar.graph_auth import GraphAuth, GraphAuthError
 from mcs.config import Settings, get_settings
@@ -37,7 +37,8 @@ def create_app(settings: Settings | None = None, *, extractor_factory: Callable 
     app.add_exception_handler(SinkNotConfigured, lambda r, e: _error(400, str(e)))
     app.add_exception_handler(GraphAuthError, lambda r, e: _error(401, str(e)))
 
-    for router in (routes_system.router, routes_conferences.router, routes_meetings.router, routes_roster.router):
+    for router in (routes_system.router, routes_conferences.router, routes_meetings.router,
+                  routes_revisions.router, routes_roster.router):
         app.include_router(router)
 
     dist = settings.frontend_dist
