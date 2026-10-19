@@ -1,0 +1,124 @@
+{
+  "conference_name": "Midwest Industrials Field Trip 2026",
+  "broker": "Pinecrest Securities",
+  "hotel": "The Loop Meridian Hotel",
+  "city": "Chicago, IL",
+  "timezone": "America/Chicago",
+  "schedule_for": "Sample Capital",
+  "meetings": [
+    {
+      "date": "2026-11-19",
+      "start": "08:30",
+      "end": "09:45",
+      "room": "Plant tour — 4400 W Fulton St, Chicago",
+      "company": "Midwest Rail Works",
+      "ticker": "MWRW",
+      "format": "other",
+      "company_attendees": [
+        "Stefan Castillo, Investor Relations",
+        "Isla Brennan, CEO"
+      ],
+      "firm_attendees": [
+        "Taylor Brooks",
+        "A. Kim"
+      ],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2026-11-19",
+      "start": "10:15",
+      "end": "11:30",
+      "room": "HQ — 900 N Lake Shore Dr, Chicago",
+      "company": "Lakeshore Machinery",
+      "ticker": "LKMC",
+      "format": "other",
+      "company_attendees": [
+        "Yuki Lindqvist, CFO",
+        "Ava Ibarra, Investor Relations"
+      ],
+      "firm_attendees": [
+        "Taylor Brooks",
+        "A. Kim"
+      ],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2026-11-19",
+      "start": "11:45",
+      "end": "13:00",
+      "room": "Mill — Gary, IN",
+      "company": "Prairie Steel Fabricators",
+      "ticker": "PRSF",
+      "format": "other",
+      "company_attendees": [
+        "Rosa Rourke, Head of Strategy",
+        "Dev Grieve, COO"
+      ],
+      "firm_attendees": [
+        "Tay Brooks",
+        "Avery Kim"
+      ],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2026-11-19",
+      "start": "13:45",
+      "end": "15:00",
+      "room": "Hangar 7, Midway Airport",
+      "company": "Windy City Aerospace",
+      "ticker": "WCAS",
+      "format": "other",
+      "company_attendees": [
+        "Nikhil Kowal, CEO",
+        "Liam Nakamura, CFO"
+      ],
+      "firm_attendees": [
+        "Tay Brooks",
+        "Avery Kim"
+      ],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2026-11-19",
+      "start": "15:15",
+      "end": "16:30",
+      "room": "Distribution centre — Joliet, IL",
+      "company": "Great Lakes Logistics",
+      "ticker": "GLLG",
+      "format": "other",
+      "company_attendees": [
+        "Grace Whitlock, Head of Strategy",
+        "Jonah Dunmore, CEO"
+      ],
+      "firm_attendees": [
+        "Taylor Brooks",
+        "A. Kim"
+      ],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2026-11-19",
+      "start": "16:45",
+      "end": "18:00",
+      "room": "Research lab — Schaumburg, IL",
+      "company": "Ironbridge Pumps",
+      "ticker": "IRBP",
+      "format": "other",
+      "company_attendees": [
+        "Pablo Grieve, COO",
+        "Stefan Underhill, Head of Strategy"
+      ],
+      "firm_attendees": [
+        "Taylor Brooks",
+        "A. Kim"
+      ],
+      "notes": null,
+      "page": 1
+    }
+  ]
+}

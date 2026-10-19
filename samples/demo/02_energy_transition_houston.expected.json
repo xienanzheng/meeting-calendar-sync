@@ -1,0 +1,193 @@
+{
+  "conference_name": "Energy Transition Summit 2026",
+  "broker": "Northbridge Capital",
+  "hotel": "The Gulfstream Grand",
+  "city": "Houston, TX",
+  "timezone": "America/Chicago",
+  "schedule_for": "Sample Capital",
+  "meetings": [
+    {
+      "date": "2026-12-08",
+      "start": "08:30",
+      "end": "09:15",
+      "room": "Bayou Ballroom",
+      "company": "Prairie Wind Power",
+      "ticker": "PRWP",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Yuki Varga, CFO"
+      ],
+      "firm_attendees": [
+        "Rilay Chen"
+      ],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2026-12-08",
+      "start": "09:30",
+      "end": "10:15",
+      "room": "Suite 1410",
+      "company": "Bluewater Midstream",
+      "ticker": "BLWM",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Yuki Quist, CFO"
+      ],
+      "firm_attendees": [
+        "Rilay Chen",
+        "Morgan D.",
+        "Daniel Okafor"
+      ],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2026-12-08",
+      "start": "10:30",
+      "end": "11:15",
+      "room": "Bayou Ballroom",
+      "company": "Granite Ridge Oil",
+      "ticker": "GRRO",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Quinn Fontaine, COO"
+      ],
+      "firm_attendees": [
+        "Daniel Okafor",
+        "Morgan Diaz"
+      ],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2026-12-08",
+      "start": "12:00",
+      "end": "13:30",
+      "room": "Bayou Ballroom",
+      "company": "Helios Grid",
+      "ticker": "HLGR",
+      "format": "meal",
+      "company_attendees": [
+        "Elena Quist, COO"
+      ],
+      "firm_attendees": [
+        "Rilay Chen",
+        "Morgan Diaz",
+        "D. Okafor"
+      ],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2026-12-08",
+      "start": "14:00",
+      "end": "14:45",
+      "room": "Bayou Ballroom",
+      "company": "Cobalt Basin Energy",
+      "ticker": "CBBE",
+      "format": "group",
+      "company_attendees": [
+        "Maya Whitlock, Head of Strategy"
+      ],
+      "firm_attendees": [
+        "D. Okafor",
+        "Morgan Diaz",
+        "Rilay Chen"
+      ],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2026-12-09",
+      "start": "08:30",
+      "end": "09:15",
+      "room": "Suite 1410",
+      "company": "Northern Lights Utilities",
+      "ticker": "NLUT",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Olga Lindqvist, COO"
+      ],
+      "firm_attendees": [
+        "Morgan D.",
+        "D. Okafor"
+      ],
+      "notes": null,
+      "page": 2
+    },
+    {
+      "date": "2026-12-09",
+      "start": "09:30",
+      "end": "10:15",
+      "room": "Suite 1410",
+      "company": "Redrock Refining",
+      "ticker": "RDRF",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Pablo Jaskolski, CFO"
+      ],
+      "firm_attendees": [
+        "Morgan D.",
+        "Rilay Chen"
+      ],
+      "notes": null,
+      "page": 2
+    },
+    {
+      "date": "2026-12-09",
+      "start": "10:30",
+      "end": "11:15",
+      "room": "Suite 1410",
+      "company": "Tidal Storage Systems",
+      "ticker": "TDSS",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Carla Kowal, Head of Strategy",
+        "Ava Grieve, Head of Strategy"
+      ],
+      "firm_attendees": [
+        "Morgan Diaz",
+        "Daniel Okafor"
+      ],
+      "notes": null,
+      "page": 2
+    },
+    {
+      "date": "2026-12-09",
+      "start": "12:00",
+      "end": "13:30",
+      "room": "Suite 1410",
+      "company": "Ember Hydrogen",
+      "ticker": "EMBH",
+      "format": "meal",
+      "company_attendees": [
+        "Vera Dunmore, COO"
+      ],
+      "firm_attendees": [
+        "Morgan Diaz",
+        "Rilay Chen",
+        "Daniel Okafor"
+      ],
+      "notes": null,
+      "page": 2
+    },
+    {
+      "date": "2026-12-09",
+      "start": "14:00",
+      "end": "14:45",
+      "room": "Suite 1410",
+      "company": "Silver Creek Gas",
+      "ticker": "SCGS",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Ben Lindqvist, CFO"
+      ],
+      "firm_attendees": [
+        "Daniel Okafor"
+      ],
+      "notes": null,
+      "page": 2
+    }
+  ]
+}

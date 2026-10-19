@@ -1,0 +1,231 @@
+{
+  "conference_name": "Japan Corporate Access Week 2026",
+  "broker": "Bayview Markets",
+  "hotel": "The Akasaka Garden Hotel",
+  "city": "Tokyo",
+  "timezone": "Asia/Tokyo",
+  "schedule_for": "Sample Capital",
+  "meetings": [
+    {
+      "date": "2026-12-14",
+      "start": "09:00",
+      "end": "09:50",
+      "room": "Suite 4012",
+      "company": "Sakura Precision",
+      "ticker": "SKRP",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Carla Rourke, CEO"
+      ],
+      "firm_attendees": [
+        "D. Okafor"
+      ],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2026-12-14",
+      "start": "10:00",
+      "end": "10:50",
+      "room": "Room Sakura",
+      "company": "Fujiyama Robotics",
+      "ticker": "FJRB",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Carla Halvorsen, CEO"
+      ],
+      "firm_attendees": [
+        "Samir Patel",
+        "Riley Chen",
+        "Daniel Okafor"
+      ],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2026-12-14",
+      "start": "11:00",
+      "end": "11:50",
+      "room": "Room Fuji",
+      "company": "Kanto Rail Systems",
+      "ticker": "KNRS",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Rosa Ellery, CFO"
+      ],
+      "firm_attendees": [
+        "Samir Patel",
+        "Daniel Okafor",
+        "Riley Chen"
+      ],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2026-12-14",
+      "start": "13:30",
+      "end": "14:20",
+      "room": "Suite 4012",
+      "company": "Hoshi Electronics",
+      "ticker": "HSEL",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Umar Grieve, CFO",
+        "Dev Rourke, Head of Strategy"
+      ],
+      "firm_attendees": [
+        "Riley Chen",
+        "Sam Patel",
+        "Daniel Okafor"
+      ],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2026-12-15",
+      "start": "09:00",
+      "end": "09:50",
+      "room": "Suite 4012",
+      "company": "Minato Trading",
+      "ticker": "MNTR",
+      "format": "group",
+      "company_attendees": [
+        "Liam Jaskolski, CFO"
+      ],
+      "firm_attendees": [
+        "Daniel Okafor",
+        "Riley Chen",
+        "Sam Patel"
+      ],
+      "notes": null,
+      "page": 2
+    },
+    {
+      "date": "2026-12-15",
+      "start": "10:00",
+      "end": "10:50",
+      "room": "Room Sakura",
+      "company": "Aoba Pharma",
+      "ticker": "AOBP",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Carla Dunmore, COO",
+        "Nikhil Fontaine, CFO"
+      ],
+      "firm_attendees": [
+        "Daniel Okafor",
+        "Rilay Chen",
+        "Samir Patel"
+      ],
+      "notes": null,
+      "page": 2
+    },
+    {
+      "date": "2026-12-15",
+      "start": "11:00",
+      "end": "11:50",
+      "room": "Suite 4012",
+      "company": "Kaze Motors",
+      "ticker": "KZMT",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Keiko Whitlock, CFO"
+      ],
+      "firm_attendees": [
+        "Rilay Chen"
+      ],
+      "notes": null,
+      "page": 2
+    },
+    {
+      "date": "2026-12-15",
+      "start": "13:30",
+      "end": "14:20",
+      "room": "Room Sakura",
+      "company": "Tsuki Semiconductor",
+      "ticker": "TSKS",
+      "format": "group",
+      "company_attendees": [
+        "Wes Varga, CEO"
+      ],
+      "firm_attendees": [
+        "Sam Patel"
+      ],
+      "notes": null,
+      "page": 2
+    },
+    {
+      "date": "2026-12-16",
+      "start": "09:00",
+      "end": "09:50",
+      "room": "Suite 4012",
+      "company": "Ume Foods",
+      "ticker": "UMEF",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Vera Lindqvist, CEO"
+      ],
+      "firm_attendees": [
+        "Rilay Chen",
+        "D. Okafor",
+        "Sam Patel"
+      ],
+      "notes": null,
+      "page": 3
+    },
+    {
+      "date": "2026-12-16",
+      "start": "10:00",
+      "end": "10:50",
+      "room": "Room Sakura",
+      "company": "Shinkai Shipping",
+      "ticker": "SNKS",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Yuki Halvorsen, Investor Relations"
+      ],
+      "firm_attendees": [
+        "Samir Patel",
+        "Rilay Chen"
+      ],
+      "notes": null,
+      "page": 3
+    },
+    {
+      "date": "2026-12-16",
+      "start": "11:00",
+      "end": "11:50",
+      "room": "Room Sakura",
+      "company": "Kumo Software",
+      "ticker": "KMSW",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Isla Ellery, Investor Relations",
+        "Rosa Ibarra, Head of Strategy"
+      ],
+      "firm_attendees": [
+        "D. Okafor"
+      ],
+      "notes": null,
+      "page": 3
+    },
+    {
+      "date": "2026-12-16",
+      "start": "13:30",
+      "end": "14:20",
+      "room": "Room Fuji",
+      "company": "Hikari Materials",
+      "ticker": "HKMT",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Elena Halvorsen, Head of Strategy"
+      ],
+      "firm_attendees": [
+        "Sam Patel",
+        "Riley Chen"
+      ],
+      "notes": null,
+      "page": 3
+    }
+  ]
+}

@@ -1,0 +1,268 @@
+{
+  "conference_name": "Consumer & Retail Conference 2026",
+  "broker": "Example Securities",
+  "hotel": "The Beacon Harbor Hotel",
+  "city": "Boston, MA",
+  "timezone": "America/New_York",
+  "schedule_for": "Sample Capital",
+  "meetings": [
+    {
+      "date": "2026-11-16",
+      "start": "08:00",
+      "end": "08:45",
+      "room": "Harbor Room",
+      "company": "Maple and Pine Outfitters",
+      "ticker": "MPOF",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Pablo Underhill, Investor Relations"
+      ],
+      "firm_attendees": [
+        "Avery Kim",
+        "Jordan Lee",
+        "Tay Brooks"
+      ],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2026-11-16",
+      "start": "10:00",
+      "end": "10:45",
+      "room": "Harbor Room",
+      "company": "Coastline Apparel",
+      "ticker": "CSTA",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Grace Nakamura, Head of Strategy",
+        "Ava Quist, CFO"
+      ],
+      "firm_attendees": [
+        "A. Kim"
+      ],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2026-11-16",
+      "start": "11:00",
+      "end": "11:45",
+      "room": "Suite 1906",
+      "company": "Bramble Home Goods",
+      "ticker": "BRHG",
+      "format": "group",
+      "company_attendees": [
+        "Jonah Abbott, Investor Relations"
+      ],
+      "firm_attendees": [
+        "Jordan Lee",
+        "Taylor Brooks",
+        "A. Kim"
+      ],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2026-11-16",
+      "start": "12:00",
+      "end": "13:15",
+      "room": "Harbor Room",
+      "company": "Saffron Kitchens",
+      "ticker": "SAFK",
+      "format": "meal",
+      "company_attendees": [
+        "Vera Grieve, CFO",
+        "Jonah Sorensen, Investor Relations"
+      ],
+      "firm_attendees": [
+        "A. Kim",
+        "Morgan Diaz",
+        "J. Lee"
+      ],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2026-11-16",
+      "start": "13:30",
+      "end": "14:15",
+      "room": "Salon B",
+      "company": "Velvet Leaf Beauty",
+      "ticker": "VLBT",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Rosa Whitlock, Head of Strategy"
+      ],
+      "firm_attendees": [
+        "Tay Brooks",
+        "Morgan Diaz",
+        "Taylor Brooks"
+      ],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2026-11-16",
+      "start": "14:30",
+      "end": "15:15",
+      "room": "Suite 1802",
+      "company": "Driftwood Footwear",
+      "ticker": "DRFW",
+      "format": "group",
+      "company_attendees": [
+        "Yuki Abbott, Investor Relations"
+      ],
+      "firm_attendees": [
+        "Avery Kim",
+        "Tay Brooks",
+        "J. Lee"
+      ],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2026-11-16",
+      "start": "15:30",
+      "end": "16:15",
+      "room": "Salon A",
+      "company": "Lantern Grocers",
+      "ticker": "LTGR",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Olga Ibarra, Head of Strategy",
+        "Hugo Sorensen, CEO"
+      ],
+      "firm_attendees": [
+        "Tay Brooks",
+        "Morgan Diaz"
+      ],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2026-11-17",
+      "start": "08:00",
+      "end": "08:45",
+      "room": "Salon A",
+      "company": "Copper Kettle Brands",
+      "ticker": "CPKB",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Rosa Rourke, CFO"
+      ],
+      "firm_attendees": [
+        "J. Lee"
+      ],
+      "notes": null,
+      "page": 2
+    },
+    {
+      "date": "2026-11-17",
+      "start": "09:00",
+      "end": "09:45",
+      "room": "Salon A",
+      "company": "Harbor Lane Retail",
+      "ticker": "HBLR",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Yuki Quist, CFO"
+      ],
+      "firm_attendees": [
+        "Morgan Diaz",
+        "J. Lee",
+        "Taylor Brooks"
+      ],
+      "notes": null,
+      "page": 2
+    },
+    {
+      "date": "2026-11-17",
+      "start": "10:00",
+      "end": "10:45",
+      "room": "Harbor Room",
+      "company": "Silverline Luxury",
+      "ticker": "SLVL",
+      "format": "group",
+      "company_attendees": [
+        "Liam Nakamura, CFO"
+      ],
+      "firm_attendees": [
+        "Chris Wong"
+      ],
+      "notes": null,
+      "page": 2
+    },
+    {
+      "date": "2026-11-17",
+      "start": "12:00",
+      "end": "13:15",
+      "room": "Salon B",
+      "company": "Nimble Pet Co",
+      "ticker": "NMPC",
+      "format": "meal",
+      "company_attendees": [
+        "Dev Tanaka, CFO"
+      ],
+      "firm_attendees": [
+        "Tay Brooks",
+        "A. Kim",
+        "Jordan Lee"
+      ],
+      "notes": null,
+      "page": 2
+    },
+    {
+      "date": "2026-11-17",
+      "start": "13:30",
+      "end": "14:15",
+      "room": "Salon B",
+      "company": "Oakridge Outdoors",
+      "ticker": "OKRO",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Isla Underhill, Head of Strategy",
+        "Jonah Oyelaran, Head of Strategy"
+      ],
+      "firm_attendees": [
+        "Morgan D."
+      ],
+      "notes": null,
+      "page": 2
+    },
+    {
+      "date": "2026-11-17",
+      "start": "14:30",
+      "end": "15:15",
+      "room": "Suite 1802",
+      "company": "Sunbeam Beverages",
+      "ticker": "SNBV",
+      "format": "group",
+      "company_attendees": [
+        "Keiko Nakamura, CFO"
+      ],
+      "firm_attendees": [
+        "A. Kim",
+        "Taylor Brooks"
+      ],
+      "notes": null,
+      "page": 2
+    },
+    {
+      "date": "2026-11-17",
+      "start": "15:30",
+      "end": "16:15",
+      "room": "Salon B",
+      "company": "Juniper Cycles",
+      "ticker": "JNCY",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Rosa Varga, CFO"
+      ],
+      "firm_attendees": [
+        "Avery Kim"
+      ],
+      "notes": null,
+      "page": 2
+    }
+  ]
+}

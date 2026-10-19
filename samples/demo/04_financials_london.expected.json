@@ -1,0 +1,225 @@
+{
+  "conference_name": "European Financials Conference 2026",
+  "broker": "Harborline Partners",
+  "hotel": "The Kensington Arms",
+  "city": "London",
+  "timezone": "Europe/London",
+  "schedule_for": "Sample Capital",
+  "meetings": [
+    {
+      "date": "2026-12-01",
+      "start": "08:30",
+      "end": "09:10",
+      "room": "Room 2",
+      "company": "Thames Mutual Bank",
+      "ticker": "TMBK",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Carla Castillo, CEO"
+      ],
+      "firm_attendees": [
+        "Samir Patel",
+        "J. Lee"
+      ],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2026-12-01",
+      "start": "09:20",
+      "end": "10:00",
+      "room": "The Library",
+      "company": "Kingsway Insurance",
+      "ticker": "KGIN",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Felix Dunmore, CFO"
+      ],
+      "firm_attendees": [
+        "Priya Shah"
+      ],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2026-12-01",
+      "start": "10:10",
+      "end": "10:50",
+      "room": "Room 6",
+      "company": "Albion Asset Managers",
+      "ticker": "ALAM",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Jonah Underhill, Head of Strategy"
+      ],
+      "firm_attendees": [
+        "J. Lee",
+        "Sam Patel"
+      ],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2026-12-01",
+      "start": "11:00",
+      "end": "11:40",
+      "room": "Room 6",
+      "company": "Fleet Street Payments",
+      "ticker": "FSPY",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Pablo Ibarra, CEO"
+      ],
+      "firm_attendees": [
+        "Priya S.",
+        "Sam Patel"
+      ],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2026-12-01",
+      "start": "12:15",
+      "end": "13:15",
+      "room": "Room 2",
+      "company": "Greenwich Re",
+      "ticker": "GRRE",
+      "format": "meal",
+      "company_attendees": [
+        "Tara Jaskolski, Investor Relations"
+      ],
+      "firm_attendees": [
+        "J. Lee",
+        "Priya Shah",
+        "Sam Patel"
+      ],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2026-12-01",
+      "start": "14:00",
+      "end": "14:40",
+      "room": "Room 4",
+      "company": "Mayfair Wealth",
+      "ticker": "MYFW",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Umar Ibarra, COO"
+      ],
+      "firm_attendees": [
+        "Samir Patel",
+        "Priya S.",
+        "Elena Park"
+      ],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2026-12-02",
+      "start": "08:30",
+      "end": "09:10",
+      "room": "Room 2",
+      "company": "Cheapside Exchange Group",
+      "ticker": "CHEX",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Umar Underhill, Investor Relations"
+      ],
+      "firm_attendees": [
+        "Samir Patel"
+      ],
+      "notes": null,
+      "page": 2
+    },
+    {
+      "date": "2026-12-02",
+      "start": "09:20",
+      "end": "10:00",
+      "room": "Room 6",
+      "company": "Highbury Building Society",
+      "ticker": "HBBS",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Dev Brennan, Head of Strategy"
+      ],
+      "firm_attendees": [
+        "Jordan Lee",
+        "Priya S."
+      ],
+      "notes": null,
+      "page": 2
+    },
+    {
+      "date": "2026-12-02",
+      "start": "10:10",
+      "end": "10:50",
+      "room": "Room 6",
+      "company": "Lombard Lane Capital",
+      "ticker": "LBLC",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Olga Abbott, CEO"
+      ],
+      "firm_attendees": [
+        "J. Lee"
+      ],
+      "notes": null,
+      "page": 2
+    },
+    {
+      "date": "2026-12-02",
+      "start": "11:00",
+      "end": "11:40",
+      "room": "Room 4",
+      "company": "Southbank Fintech",
+      "ticker": "SBFT",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Jonah Kowal, CFO"
+      ],
+      "firm_attendees": [
+        "Priya S.",
+        "Jordan Lee"
+      ],
+      "notes": null,
+      "page": 2
+    },
+    {
+      "date": "2026-12-02",
+      "start": "12:15",
+      "end": "13:15",
+      "room": "The Library",
+      "company": "Regent Card Services",
+      "ticker": "RGCS",
+      "format": "meal",
+      "company_attendees": [
+        "Isla Marchetti, COO"
+      ],
+      "firm_attendees": [
+        "Jordan Lee",
+        "Samir Patel",
+        "Priya Shah"
+      ],
+      "notes": null,
+      "page": 2
+    },
+    {
+      "date": "2026-12-02",
+      "start": "14:00",
+      "end": "14:40",
+      "room": "Room 6",
+      "company": "Wharfside Insurers",
+      "ticker": "WHFI",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Liam Jaskolski, COO"
+      ],
+      "firm_attendees": [
+        "Jordan Lee"
+      ],
+      "notes": null,
+      "page": 2
+    }
+  ]
+}

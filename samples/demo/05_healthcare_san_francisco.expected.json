@@ -1,0 +1,606 @@
+{
+  "conference_name": "Healthcare Investor Days 2027",
+  "broker": "Summit Street Securities",
+  "hotel": "The Embarcadero Plaza Hotel",
+  "city": "San Francisco, CA",
+  "timezone": "America/Los_Angeles",
+  "schedule_for": "Sample Capital",
+  "meetings": [
+    {
+      "date": "2027-01-12",
+      "start": "08:00",
+      "end": "08:40",
+      "room": "Grand Ballroom B",
+      "company": "Aster Genomics",
+      "ticker": "ASTM",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Isla Abbott, Head of Strategy"
+      ],
+      "firm_attendees": [
+        "D. Okafor",
+        "Tay Brooks"
+      ],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2027-01-12",
+      "start": "08:45",
+      "end": "09:25",
+      "room": "Nob Hill Room",
+      "company": "Brightwell Health",
+      "ticker": "BRIR",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Olga Brennan, Head of Strategy"
+      ],
+      "firm_attendees": [
+        "Priya Shah",
+        "Jordan Lee",
+        "Riley Chen"
+      ],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2027-01-12",
+      "start": "09:30",
+      "end": "10:10",
+      "room": "Suite 2201",
+      "company": "Cedar Health",
+      "ticker": "CEDB",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Isla Oyelaran, CEO",
+        "Stefan Zeller, CFO"
+      ],
+      "firm_attendees": [
+        "Tay Brooks",
+        "Morgan Diaz"
+      ],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2027-01-12",
+      "start": "10:15",
+      "end": "10:55",
+      "room": "Suite 2201",
+      "company": "Delta Diagnostics",
+      "ticker": "DELH",
+      "format": "group",
+      "company_attendees": [
+        "Tara Lindqvist, CFO",
+        "Keiko Ibarra, Head of Strategy"
+      ],
+      "firm_attendees": [
+        "Riley Chen"
+      ],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2027-01-12",
+      "start": "10:15",
+      "end": "10:55",
+      "room": "Grand Ballroom A",
+      "company": "Evergreen Health",
+      "ticker": "EVEB",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Elena Zeller, Head of Strategy",
+        "Jonah Pryce, CFO"
+      ],
+      "firm_attendees": [
+        "Riley Chen"
+      ],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2027-01-12",
+      "start": "13:00",
+      "end": "13:40",
+      "room": "Nob Hill Room",
+      "company": "Fulcrum Biosciences",
+      "ticker": "FULD",
+      "format": "group",
+      "company_attendees": [
+        "Isla Oyelaran, Head of Strategy"
+      ],
+      "firm_attendees": [
+        "Rilay Chen"
+      ],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2027-01-12",
+      "start": "13:45",
+      "end": "14:25",
+      "room": "Suite 2205",
+      "company": "Genome Medical",
+      "ticker": "GENX",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Grace Ellery, Head of Strategy"
+      ],
+      "firm_attendees": [
+        "Avery Kim"
+      ],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2027-01-12",
+      "start": "14:30",
+      "end": "15:10",
+      "room": "Suite 2205",
+      "company": "Halo Biosciences",
+      "ticker": "HALT",
+      "format": "group",
+      "company_attendees": [
+        "Elena Brennan, Investor Relations"
+      ],
+      "firm_attendees": [
+        "J. Lee"
+      ],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2027-01-12",
+      "start": "15:15",
+      "end": "15:55",
+      "room": "Suite 2205",
+      "company": "Iris Genomics",
+      "ticker": "IRID",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Wes Zeller, CFO"
+      ],
+      "firm_attendees": [
+        "J. Lee",
+        "Morgan D."
+      ],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2027-01-12",
+      "start": "16:00",
+      "end": "16:40",
+      "room": "Grand Ballroom A",
+      "company": "Juniper Genomics",
+      "ticker": "JUNH",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Rosa Fontaine, Head of Strategy"
+      ],
+      "firm_attendees": [
+        "Priya S.",
+        "Samir Patel"
+      ],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2027-01-12",
+      "start": "16:45",
+      "end": "17:25",
+      "room": "Suite 2201",
+      "company": "Kestrel Therapeutics",
+      "ticker": "KESH",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Rosa Quist, CFO",
+        "Carla Lindqvist, Head of Strategy"
+      ],
+      "firm_attendees": [
+        "Daniel Okafor"
+      ],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2027-01-13",
+      "start": "08:00",
+      "end": "08:40",
+      "room": "Suite 2205",
+      "company": "Lumina Diagnostics",
+      "ticker": "LUMM",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Wes Whitlock, CFO"
+      ],
+      "firm_attendees": [
+        "Morgan D.",
+        "Priya Shah"
+      ],
+      "notes": null,
+      "page": 2
+    },
+    {
+      "date": "2027-01-13",
+      "start": "08:45",
+      "end": "09:25",
+      "room": "Suite 2201",
+      "company": "Meridian Biosciences",
+      "ticker": "MERT",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Jonah Quist, Head of Strategy"
+      ],
+      "firm_attendees": [
+        "Morgan D.",
+        "J. Lee"
+      ],
+      "notes": null,
+      "page": 2
+    },
+    {
+      "date": "2027-01-13",
+      "start": "09:30",
+      "end": "10:10",
+      "room": "Grand Ballroom B",
+      "company": "Nova Biosciences",
+      "ticker": "NOVD",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Olga Lindqvist, CFO",
+        "Quinn Ellery, COO"
+      ],
+      "firm_attendees": [
+        "Priya Shah",
+        "Jordan Lee"
+      ],
+      "notes": null,
+      "page": 2
+    },
+    {
+      "date": "2027-01-13",
+      "start": "10:15",
+      "end": "10:55",
+      "room": "Grand Ballroom A",
+      "company": "Orchid Biosciences",
+      "ticker": "ORCX",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Vera Zeller, Investor Relations",
+        "Felix Tanaka, COO"
+      ],
+      "firm_attendees": [
+        "Morgan D.",
+        "Tay Brooks"
+      ],
+      "notes": null,
+      "page": 2
+    },
+    {
+      "date": "2027-01-13",
+      "start": "11:00",
+      "end": "11:40",
+      "room": "Grand Ballroom B",
+      "company": "Pinnacle Biosciences",
+      "ticker": "PING",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Olga Tanaka, Head of Strategy",
+        "Felix Halvorsen, Head of Strategy"
+      ],
+      "firm_attendees": [
+        "Riley Chen"
+      ],
+      "notes": null,
+      "page": 2
+    },
+    {
+      "date": "2027-01-13",
+      "start": "13:00",
+      "end": "13:40",
+      "room": "Grand Ballroom A",
+      "company": "Quill Therapeutics",
+      "ticker": "QUIB",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Dev Kowal, CFO"
+      ],
+      "firm_attendees": [
+        "Rilay Chen",
+        "Sam Patel"
+      ],
+      "notes": null,
+      "page": 2
+    },
+    {
+      "date": "2027-01-13",
+      "start": "13:45",
+      "end": "14:25",
+      "room": "Suite 2205",
+      "company": "Radiant Biosciences",
+      "ticker": "RADH",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Tara Castillo, COO",
+        "Grace Halvorsen, Head of Strategy"
+      ],
+      "firm_attendees": [
+        "D. Okafor",
+        "Jordan Lee"
+      ],
+      "notes": null,
+      "page": 2
+    },
+    {
+      "date": "2027-01-13",
+      "start": "14:30",
+      "end": "15:10",
+      "room": "Suite 2205",
+      "company": "Sable Biosciences",
+      "ticker": "SABG",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Wes Rourke, CFO"
+      ],
+      "firm_attendees": [
+        "Morgan Diaz",
+        "Priya S."
+      ],
+      "notes": null,
+      "page": 2
+    },
+    {
+      "date": "2027-01-13",
+      "start": "15:15",
+      "end": "15:55",
+      "room": "Suite 2201",
+      "company": "Terra Medical",
+      "ticker": "TERR",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Elena Nakamura, Investor Relations"
+      ],
+      "firm_attendees": [
+        "Tay Brooks",
+        "Morgan D."
+      ],
+      "notes": null,
+      "page": 2
+    },
+    {
+      "date": "2027-01-13",
+      "start": "16:00",
+      "end": "16:40",
+      "room": "Nob Hill Room",
+      "company": "Umbra Biosciences",
+      "ticker": "UMBH",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Grace Ellery, COO"
+      ],
+      "firm_attendees": [
+        "Priya Shah"
+      ],
+      "notes": null,
+      "page": 2
+    },
+    {
+      "date": "2027-01-13",
+      "start": "16:45",
+      "end": "17:25",
+      "room": "Grand Ballroom A",
+      "company": "Vireo Biosciences",
+      "ticker": "VIRH",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Stefan Tanaka, COO"
+      ],
+      "firm_attendees": [
+        "Priya Shah"
+      ],
+      "notes": null,
+      "page": 2
+    },
+    {
+      "date": "2027-01-14",
+      "start": "08:00",
+      "end": "08:40",
+      "room": "Grand Ballroom B",
+      "company": "Willow Diagnostics",
+      "ticker": "WILM",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Jonah Pryce, Head of Strategy"
+      ],
+      "firm_attendees": [
+        "Priya S.",
+        "Rilay Chen",
+        "Daniel Okafor"
+      ],
+      "notes": null,
+      "page": 3
+    },
+    {
+      "date": "2027-01-14",
+      "start": "08:45",
+      "end": "09:25",
+      "room": "Suite 2205",
+      "company": "Xylo Therapeutics",
+      "ticker": "XYLR",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Keiko Jaskolski, Investor Relations"
+      ],
+      "firm_attendees": [
+        "D. Okafor",
+        "Jordan Lee"
+      ],
+      "notes": null,
+      "page": 3
+    },
+    {
+      "date": "2027-01-14",
+      "start": "09:30",
+      "end": "10:10",
+      "room": "Nob Hill Room",
+      "company": "Yarrow Diagnostics",
+      "ticker": "YARG",
+      "format": "group",
+      "company_attendees": [
+        "Hugo Jaskolski, CEO"
+      ],
+      "firm_attendees": [
+        "Sam Patel"
+      ],
+      "notes": null,
+      "page": 3
+    },
+    {
+      "date": "2027-01-14",
+      "start": "10:15",
+      "end": "10:55",
+      "room": "Nob Hill Room",
+      "company": "Zenith Biosciences",
+      "ticker": "ZENM",
+      "format": "group",
+      "company_attendees": [
+        "Isla Halvorsen, Investor Relations",
+        "Ben Halvorsen, Investor Relations"
+      ],
+      "firm_attendees": [
+        "D. Okafor"
+      ],
+      "notes": null,
+      "page": 3
+    },
+    {
+      "date": "2027-01-14",
+      "start": "11:00",
+      "end": "11:40",
+      "room": "Nob Hill Room",
+      "company": "Arbor Therapeutics",
+      "ticker": "ARBR",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Quinn Underhill, COO"
+      ],
+      "firm_attendees": [
+        "Morgan Diaz",
+        "Riley Chen"
+      ],
+      "notes": null,
+      "page": 3
+    },
+    {
+      "date": "2027-01-14",
+      "start": "13:00",
+      "end": "13:40",
+      "room": "Suite 2201",
+      "company": "Beacon Medical",
+      "ticker": "BEAB",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Jonah Zeller, COO",
+        "Ava Oyelaran, CFO"
+      ],
+      "firm_attendees": [
+        "Morgan D.",
+        "Daniel Okafor"
+      ],
+      "notes": null,
+      "page": 3
+    },
+    {
+      "date": "2027-01-14",
+      "start": "13:45",
+      "end": "14:25",
+      "room": "Nob Hill Room",
+      "company": "Cobalt Genomics",
+      "ticker": "COBR",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Vera Dunmore, Head of Strategy"
+      ],
+      "firm_attendees": [
+        "Morgan Diaz"
+      ],
+      "notes": null,
+      "page": 3
+    },
+    {
+      "date": "2027-01-14",
+      "start": "14:30",
+      "end": "15:10",
+      "room": "Nob Hill Room",
+      "company": "Dawn Therapeutics",
+      "ticker": "DAWM",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Wes Underhill, Head of Strategy",
+        "Pablo Marchetti, Investor Relations"
+      ],
+      "firm_attendees": [
+        "Priya S.",
+        "Morgan Diaz"
+      ],
+      "notes": null,
+      "page": 3
+    },
+    {
+      "date": "2027-01-14",
+      "start": "15:15",
+      "end": "15:55",
+      "room": "Grand Ballroom A",
+      "company": "Ember Medical",
+      "ticker": "EMBM",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Nikhil Sorensen, CFO",
+        "Umar Pryce, CFO"
+      ],
+      "firm_attendees": [
+        "Sam Patel",
+        "Jordan Lee"
+      ],
+      "notes": null,
+      "page": 3
+    },
+    {
+      "date": "2027-01-14",
+      "start": "16:00",
+      "end": "16:40",
+      "room": "Grand Ballroom B",
+      "company": "Fable Diagnostics",
+      "ticker": "FABR",
+      "format": "group",
+      "company_attendees": [
+        "Stefan Rourke, CEO"
+      ],
+      "firm_attendees": [
+        "Daniel Okafor",
+        "Jordan Lee",
+        "Morgan D."
+      ],
+      "notes": null,
+      "page": 3
+    },
+    {
+      "date": "2027-01-12",
+      "start": "14:30",
+      "end": "15:10",
+      "room": "Suite 2205",
+      "company": "Halo Biosciences",
+      "ticker": "HALT",
+      "format": "group",
+      "company_attendees": [
+        "Elena Brennan, Investor Relations"
+      ],
+      "firm_attendees": [
+        "J. Lee"
+      ],
+      "notes": null,
+      "page": 1
+    }
+  ]
+}

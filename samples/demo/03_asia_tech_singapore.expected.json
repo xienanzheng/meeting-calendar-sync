@@ -1,0 +1,131 @@
+{
+  "conference_name": "Asia Technology Forum 2026",
+  "broker": "Demo Bank",
+  "hotel": "The Marina Pearl Hotel",
+  "city": "Singapore",
+  "timezone": "Asia/Singapore",
+  "schedule_for": "Priya Shah",
+  "meetings": [
+    {
+      "date": "2026-11-24",
+      "start": "09:00",
+      "end": null,
+      "room": "Marina Hall",
+      "company": "Jade Circuit Semiconductor",
+      "ticker": "JDCS",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Liam Tanaka, Investor Relations"
+      ],
+      "firm_attendees": [],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2026-11-24",
+      "start": "10:30",
+      "end": null,
+      "room": "Marina Hall",
+      "company": "Lotus Cloud Systems",
+      "ticker": "LTCS",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Pablo Ibarra, COO"
+      ],
+      "firm_attendees": [],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2026-11-24",
+      "start": "13:00",
+      "end": null,
+      "room": "Orchid Room",
+      "company": "Harbour Data Centres",
+      "ticker": "HBDC",
+      "format": "meal",
+      "company_attendees": [
+        "Wes Pryce, COO"
+      ],
+      "firm_attendees": [],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2026-11-24",
+      "start": "15:30",
+      "end": null,
+      "room": "Suite 3301",
+      "company": "Pearl Payments",
+      "ticker": "PRLP",
+      "format": "group",
+      "company_attendees": [
+        "Hugo Underhill, CFO"
+      ],
+      "firm_attendees": [],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2026-11-25",
+      "start": "09:00",
+      "end": null,
+      "room": "Marina Hall",
+      "company": "Monsoon Robotics",
+      "ticker": "MNRB",
+      "format": "group",
+      "company_attendees": [
+        "Vera Castillo, CFO"
+      ],
+      "firm_attendees": [],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2026-11-25",
+      "start": "10:30",
+      "end": null,
+      "room": "Suite 3301",
+      "company": "Bamboo Logistics Tech",
+      "ticker": "BMLT",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Isla Pryce, COO"
+      ],
+      "firm_attendees": [],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2026-11-25",
+      "start": "13:00",
+      "end": null,
+      "room": "Marina Hall",
+      "company": "Red Lantern Gaming",
+      "ticker": "RLGM",
+      "format": "meal",
+      "company_attendees": [
+        "Wes Nakamura, Investor Relations",
+        "Yuki Sorensen, Investor Relations"
+      ],
+      "firm_attendees": [],
+      "notes": null,
+      "page": 1
+    },
+    {
+      "date": "2026-11-25",
+      "start": "15:30",
+      "end": null,
+      "room": "Suite 3301",
+      "company": "Skyline Telecom Asia",
+      "ticker": "SKTA",
+      "format": "one_on_one",
+      "company_attendees": [
+        "Ben Ellery, Investor Relations"
+      ],
+      "firm_attendees": [],
+      "notes": null,
+      "page": 1
+    }
+  ]
+}
