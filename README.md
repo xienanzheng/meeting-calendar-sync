@@ -44,8 +44,9 @@ Then open **http://127.0.0.1:8765**.
 
 `mcs seed-roster` loads the sample roster (`samples/roster.sample.json`) so there are colleagues to
 match meetings against; `mcs serve` starts the app, serving the built frontend. Add
-`--seed-sample-roster` to `mcs serve` to seed automatically on first start (used by the hosted
-demo), or `--host` / `--port` to bind somewhere other than `127.0.0.1:8765`.
+`--seed-sample-roster` to `mcs serve` to seed automatically on first start, or `--host` / `--port`
+to bind somewhere other than `127.0.0.1:8765`. For the 8-PDF demo pack, seed its roster instead:
+`uv run mcs seed-roster ../samples/demo/roster.demo.json` (the hosted demo does this on every start).
 
 ## Claude access
 

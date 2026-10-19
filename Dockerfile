@@ -24,4 +24,5 @@ ENV MCS_HOST=0.0.0.0 \
     MCS_EPHEMERAL=true \
     MCS_EXTRACTOR=anthropic
 EXPOSE 8080
-CMD ["/app/backend/.venv/bin/mcs", "serve", "--seed-sample-roster"]
+# Hosted demo: load the 8-colleague demo roster (samples/demo) on every start, then serve.
+CMD ["sh", "-c", "/app/backend/.venv/bin/mcs seed-roster /app/samples/demo/roster.demo.json && exec /app/backend/.venv/bin/mcs serve"]

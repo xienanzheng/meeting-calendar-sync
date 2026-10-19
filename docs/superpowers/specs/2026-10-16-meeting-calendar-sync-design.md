@@ -461,7 +461,9 @@ accounts; persistent hosted storage (D1/R2); Teams; recurring events; attachment
   a secret scan (`sk-ant-`, `gho_`/`ghp_`, `AKIA`, private keys) must come back clean, and
   `private/`, `data/` and `.env` stay ignored. The README states it is an unofficial prototype.
 - **Container:** a multi-stage `Dockerfile` builds the frontend (Node 22) and runs the backend
-  (Python 3.13 + uv) with `mcs serve --host 0.0.0.0 --port 8080 --seed-sample-roster`. Hosted
+  (Python 3.13 + uv). On start it seeds the 8-colleague demo roster
+  (`mcs seed-roster samples/demo/roster.demo.json`) and runs `mcs serve`; host and port come from
+  `MCS_HOST=0.0.0.0` / `MCS_PORT=8080`. Hosted
   settings:
   - `MCS_EXTRACTOR=anthropic`;
   - `MCS_USE_KEYCHAIN=false`;
