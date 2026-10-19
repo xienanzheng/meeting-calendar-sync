@@ -47,7 +47,7 @@ class Meeting(SQLModel, table=True):
     notes: str = ""
     source_page: int | None = None
     source_json: str = ""  # the broker's last applied row (ExtractedMeeting JSON); empty for manual meetings
-    status: str = "draft"  # draft | confirmed | cancelled
+    status: str = "draft"  # draft | confirmed | cancelled | dismissed (deleted by CR, kept only as a baseline)
     created_at: dt.datetime = Field(default_factory=utcnow)
     updated_at: dt.datetime = Field(default_factory=utcnow)
 

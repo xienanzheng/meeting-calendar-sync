@@ -121,7 +121,7 @@ e.g. `["A. Kim", "Avery K."]`), `active` (bool, default true).
 `format` (`one_on_one` | `group` | `meal` | `other`), `company_attendees` (JSON list),
 `raw_attendee_names` (JSON list — firm attendee names exactly as printed),
 `ignored_names` (JSON list — raw names the coordinator dismissed), `notes`,
-`source_page` (nullable int, 1-based), `status` (`draft` | `confirmed` | `cancelled`),
+`source_page` (nullable int, 1-based), `status` (`draft` | `confirmed` | `cancelled` | `dismissed`),
 `created_at`, `updated_at`.
 
 **MeetingAttendee**: `meeting_id`, `analyst_id`, `match` (`exact` | `alias` | `initial` |
@@ -239,6 +239,11 @@ excluded from the overlap/duplicate checks.
 - "Confirm all ready" confirms every draft meeting with no `block` flags.
 - Deleting a meeting that has never been sent removes it; deleting one with an active
   SyncRecord sets `status = cancelled` (the next send cancels it in calendars).
+- A never-sent meeting from the broker (one with a `source_json` baseline) is not removed but set
+  to `dismissed` (added 2026-10-18): its colleagues and sync rows go, and it is hidden everywhere
+  (review, counts, flags, dates, sends, ICS; edits and verify return 404). It survives only as a
+  revision baseline, so the broker's next PDF doesn't offer it again as new (§15.2). Deleting the
+  conference removes it.
 
 ## 7. Calendar output (swappable)
 
@@ -517,6 +522,11 @@ approves Graph, the `.ics` files are for CR to import into each colleague's cale
   3. Same date and company similarity ≥ 0.85, unique.
   4. Anything left over: unmatched new rows are **added** and unmatched old rows (live, with a
      baseline) are **removed**.
+  - **Cancelled and dismissed meetings** (added 2026-10-18) take part in matching so the broker's
+    row for one is never mistaken for a new meeting, but at each step live meetings match first.
+    They never produce a change (CR's decision wins), and change ids are numbered after they are
+    set aside. On apply, a matched one's baseline refreshes silently; if the broker dropped it, the
+    baseline is cleared, so a later re-listing is **added** as new.
 - **Fields compared:** date, start, end, room, format, ticker, company, company_attendees,
   firm_attendees. Names are normalized and lists are compared as sets.
 - **Review.** A pending revision shows as "Revision N — K changes", each with before → after and a
@@ -526,7 +536,8 @@ approves Graph, the `.ics` files are for CR to import into each colleague's cale
     follows a moved start. A verified meeting stays verified unless a block flag appears.
   - **Added:** the meeting is created and verified at once when it has no block flags (otherwise
     it is left as a draft with its flags).
-  - **Removed:** the meeting is cancelled if it was sent, and deleted otherwise.
+  - **Removed:** the meeting is cancelled if it was sent (and its baseline is cleared, so a later
+    re-listing is new), and deleted otherwise.
   - **Unchanged matches:** the baseline and source page refresh silently.
   - **Rejected changes:** they keep their old baseline, so they show up again on the next
     revision.

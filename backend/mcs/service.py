@@ -73,7 +73,10 @@ def roster_for(session: Session) -> list[RosterEntry]:
 
 
 def _meetings(session: Session, conference_id: int) -> list[Meeting]:
-    return list(session.exec(select(Meeting).where(Meeting.conference_id == conference_id)).all())
+    """Every meeting the app shows, checks, counts or syncs. A "dismissed" meeting (a never-sent broker
+    meeting CR deleted) is left out: it only lives on as a revision baseline."""
+    return list(session.exec(select(Meeting).where(Meeting.conference_id == conference_id,
+                                                   Meeting.status != "dismissed")).all())
 
 
 def _attendee_map(session: Session, meeting_ids: Sequence[int]) -> dict[int, list[tuple[int, str]]]:
@@ -274,8 +277,8 @@ def update_conference(session: Session, conference_id: int, data: ConferenceUpda
 
 def delete_conference(session: Session, conference_id: int) -> str:
     conference = get_conference(session, conference_id)
-    meeting_ids = [m.id for m in _meetings(session, conference_id)]
-    if meeting_ids:
+    meeting_ids = list(session.exec(select(Meeting.id).where(Meeting.conference_id == conference_id)).all())
+    if meeting_ids:  # dismissed ones included
         session.execute(delete(SyncRecord).where(SyncRecord.meeting_id.in_(meeting_ids)))
         session.execute(delete(MeetingAttendee).where(MeetingAttendee.meeting_id.in_(meeting_ids)))
         session.execute(delete(Meeting).where(Meeting.id.in_(meeting_ids)))
@@ -289,8 +292,10 @@ def delete_conference(session: Session, conference_id: int) -> str:
 # ---------- meetings ----------
 
 def get_meeting(session: Session, meeting_id: int) -> Meeting:
+    """A dismissed meeting is deleted as far as CR is concerned, so it can't be edited, verified or
+    deleted again."""
     meeting = session.get(Meeting, meeting_id)
-    if meeting is None:
+    if meeting is None or meeting.status == "dismissed":
         raise NotFound("Meeting not found.")
     return meeting
 
@@ -412,18 +417,32 @@ def confirm_ready(session: Session, conference_id: int, meeting_ids: Sequence[in
     return count
 
 
-def delete_meeting(session: Session, meeting_id: int) -> str:
+def delete_meeting(session: Session, meeting_id: int, *, broker_dropped: bool = False) -> str:
+    """CR deletes a meeting, or accepts a revision that drops it (`broker_dropped`).
+
+    Sent: "cancelled", so colleagues' calendars are cleared. Never sent: "deleted", and its colleagues and
+    sync rows go. A broker meeting CR deletes is kept as "dismissed", unseen, so it stays a revision baseline
+    and the broker's next PDF doesn't offer it again as new. When the broker itself dropped it there's
+    nothing to remember: the row goes, and a cancelled one loses its baseline, so a later re-listing is new.
+    """
     meeting = get_meeting(session, meeting_id)
     records = session.exec(select(SyncRecord).where(SyncRecord.meeting_id == meeting_id)).all()
     if any(r.external_id and r.state != "cancelled" for r in records):
         meeting.status = "cancelled"
+        if broker_dropped:
+            meeting.source_json = ""
         meeting.updated_at = utcnow()
         session.add(meeting)
         session.commit()
         return "cancelled"
     session.execute(delete(SyncRecord).where(SyncRecord.meeting_id == meeting_id))
     session.execute(delete(MeetingAttendee).where(MeetingAttendee.meeting_id == meeting_id))
-    session.delete(meeting)
+    if meeting.source_json and not broker_dropped:
+        meeting.status = "dismissed"
+        meeting.updated_at = utcnow()
+        session.add(meeting)
+    else:
+        session.delete(meeting)
     session.commit()
     return "deleted"
 

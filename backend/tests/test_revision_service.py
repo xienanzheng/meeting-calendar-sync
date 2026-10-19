@@ -301,6 +301,45 @@ def test_broker_can_put_back_a_meeting_a_revision_removed(seeded):
     assert ("added", "Tidewater Pumps") in changes
 
 
+def companies(s, conf_id):
+    return [m.company for m in service.conference_detail(s, conf_id, "ics").meetings]
+
+
+def test_deleted_unsent_meeting_is_not_new_in_the_next_revision(seeded):
+    conf = conf_a(seeded)
+    lumen = meeting(seeded, "Lumen Sensor Works")  # never sent; unchanged in v2
+    assert service.delete_meeting(seeded, lumen.id) == "deleted"
+    assert "Lumen Sensor Works" not in companies(seeded, conf.id)
+    rev, _ = revise(seeded, conf)
+    out = rs.revision_out(seeded, rev)
+    assert [(c.id, c.kind, c.company) for c in out.changes] == [
+        ("c1", "changed", "Cobalt Freight Lines"), ("c2", "changed", "Halcyon Aerostructures"),
+        ("c3", "changed", "Meridian Rail Holdings"), ("c4", "removed", "Tidewater Pumps"),
+        ("c5", "added", "Atlas Rail Systems")]
+    assert out.unchanged_count == 7
+    assert seeded.get(Meeting, lumen.id).status == "dismissed"  # kept only as the broker baseline
+    rs.apply_revision(seeded, rev.id, None, 45)
+    assert lumen_ids(seeded) == {lumen.id} and seeded.get(Meeting, lumen.id).status == "dismissed"
+    assert "Lumen Sensor Works" not in companies(seeded, conf.id)
+    assert [a for a in service.plan_conference(seeded, conf.id, "ics") if a.meeting_id in lumen_ids(seeded)] == []
+
+
+def test_dismissed_meeting_the_broker_drops_and_lists_again_is_new(seeded):
+    conf = conf_a(seeded)
+    lumen = meeting(seeded, "Lumen Sensor Works")
+    service.delete_meeting(seeded, lumen.id)
+    revised = sample("broker_a_grid_v2")
+    rows = [m for m in revised.meetings if m.company != "Lumen Sensor Works"]
+    rev, _ = rs.create_revision(seeded, conf, revised.model_copy(update={"meetings": rows}),
+                                pdf_filename="v2.pdf", pdf_path="/tmp/v2.pdf", extractor="fake")
+    assert "Lumen Sensor Works" not in [c.company for c in rs.revision_out(seeded, rev).changes]
+    rs.apply_revision(seeded, rev.id, None, 45)
+    assert seeded.get(Meeting, lumen.id).status == "dismissed"
+    assert "Lumen Sensor Works" not in companies(seeded, conf.id)
+    rev3, _ = revise(seeded, conf)  # v3 lists Lumen again
+    assert ("added", "Lumen Sensor Works") in [(c.kind, c.company) for c in rs.revision_out(seeded, rev3).changes]
+
+
 def test_real_changes_update_every_colleague(seeded):
     conf = sent_conf_a(seeded)
     rev, _ = revise(seeded, conf)

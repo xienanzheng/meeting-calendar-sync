@@ -38,16 +38,17 @@ def _result(revision: Revision) -> ExtractionResult:
 
 
 def baseline_rows(session: Session, conference_id: int) -> list[tuple[int, ExtractedMeeting]]:
-    """Meetings that came from the broker, with the broker's last applied version of each row. Cancelled
-    ones are included so the broker's row for one pairs with it instead of looking new (see `_diff`)."""
+    """Meetings that came from the broker, with the broker's last applied version of each row. Cancelled and
+    dismissed ones are included so the broker's row for one pairs with it instead of looking new (see `_diff`)."""
     meetings = session.exec(select(Meeting).where(Meeting.conference_id == conference_id, Meeting.source_json != "")
                             .order_by(Meeting.id)).all()
     return [(m.id, ExtractedMeeting.model_validate_json(m.source_json)) for m in meetings]
 
 
-def _cancelled_ids(session: Session, conference_id: int) -> set[int]:
+def _set_aside_ids(session: Session, conference_id: int) -> set[int]:
+    """Meetings CR cancelled (sent) or deleted (never sent, kept as "dismissed")."""
     return set(session.exec(select(Meeting.id).where(Meeting.conference_id == conference_id,
-                                                     Meeting.status == "cancelled")).all())
+                                                     Meeting.status.in_(("cancelled", "dismissed")))).all())
 
 
 def pending_revision(session: Session, conference_id: int) -> Revision | None:
@@ -116,10 +117,10 @@ def create_revision(session: Session, conference: Conference, result: Extraction
 
 
 def _diff(session: Session, revision: Revision, result: ExtractionResult) -> RevisionDiff:
-    """The one diff both review and apply use, so change ids agree. A meeting CR cancelled is never offered
-    as a change: no "changed" or "removed" for it, and its broker row never counts as "added"."""
+    """The one diff both review and apply use, so change ids agree. A meeting CR cancelled or deleted is
+    never offered as a change: no "changed" or "removed" for it, and its broker row never counts as "added"."""
     return diff_revision(baseline_rows(session, revision.conference_id), result.meetings,
-                         cancelled=_cancelled_ids(session, revision.conference_id))
+                         set_aside=_set_aside_ids(session, revision.conference_id))
 
 
 def _change_out(change: Change) -> ChangeOut:
@@ -147,8 +148,8 @@ def _refresh_baseline(meeting: Meeting, row: ExtractedMeeting) -> None:
 
 
 def _drop_baseline(meeting: Meeting) -> None:
-    """The broker no longer lists this cancelled meeting, so it stops pairing: if the broker lists it again
-    later, that is a new meeting for CR to review."""
+    """The broker no longer lists this cancelled or dismissed meeting, so it stops pairing: if the broker
+    lists it again later, that is a new meeting for CR to review."""
     meeting.source_json = ""
 
 
@@ -293,19 +294,16 @@ def apply_revision(session: Session, revision_id: int, accepted: Sequence[str] |
             _apply_changed(session, session.get(Meeting, change.meeting_id), change, result.schedule_for, roster,
                            default_minutes)
         elif change.kind == "removed":
-            if service.delete_meeting(session, change.meeting_id) == "cancelled":
-                removed = session.get(Meeting, change.meeting_id)
-                _drop_baseline(removed)
-                session.add(removed)
+            service.delete_meeting(session, change.meeting_id, broker_dropped=True)
         else:
             added_ids.append(_create_added(session, conference, result, change.new, roster, default_minutes).id)
     for meeting_id, row in diff.unchanged:
         meeting = session.get(Meeting, meeting_id)
         _refresh_baseline(meeting, row)
         session.add(meeting)
-    for meeting_id, row in diff.cancelled:
-        # Silent: a cancelled meeting is never planned for (its pending cancels use what was sent), so this
-        # keeps later pairing accurate without touching its status or any calendar.
+    for meeting_id, row in diff.set_aside:
+        # Silent: a cancelled or dismissed meeting is never planned for (pending cancels use what was sent),
+        # so this keeps later pairing accurate without touching its status or any calendar.
         meeting = session.get(Meeting, meeting_id)
         if row is None:
             _drop_baseline(meeting)

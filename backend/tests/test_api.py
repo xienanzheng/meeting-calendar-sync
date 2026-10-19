@@ -153,6 +153,18 @@ def test_conference_edit_add_delete_meeting(client, settings):
     assert list(settings.uploads_dir.glob("*")) == []
 
 
+def test_deleting_an_unsent_broker_meeting_removes_it_from_the_detail(client):
+    d = upload(client).json()
+    north = company(d, "Northwind Robotics")
+    r = client.delete(f"/api/meetings/{north['id']}")
+    assert r.status_code == 200
+    d = r.json()
+    assert all(m["id"] != north["id"] for m in d["meetings"]) and d["counts"]["total"] == 11
+    assert all(m["id"] != north["id"] for m in client.get(f"/api/conferences/{d['id']}").json()["meetings"])
+    assert client.patch(f"/api/meetings/{north['id']}", json={"room": "X"}).status_code == 404
+    assert client.delete(f"/api/meetings/{north['id']}").status_code == 404
+
+
 def test_meeting_times_accept_the_review_tables_format(client):
     # The source panel's Start/End fields show and send times as the table prints them ("2:30 PM").
     d = upload(client).json()

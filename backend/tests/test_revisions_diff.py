@@ -90,3 +90,20 @@ def test_same_value_rules():
     assert same_value("firm_attendees", ["Avery Kim", "Jordan Lee"], ["jordan lee", "avery kim"])
     assert same_value("room", None, "")
     assert not same_value("room", "Salon 4", "Salon 2")
+
+
+def test_live_meeting_pairs_before_a_cancelled_one_of_the_same_company():
+    # Same company twice; CR cancelled the first, and the broker moves the live one to another day.
+    d = diff_revision([(1, row(date="2026-11-10")), (2, row(date="2026-11-11"))], [row(date="2026-11-12")],
+                      set_aside={1})
+    assert [(c.kind, c.meeting_id, [f.field for f in c.fields]) for c in d.changes] == [("changed", 2, ["date"])]
+    assert d.set_aside == ((1, None),)
+
+
+def test_cancelled_meeting_still_claims_its_exact_row():
+    # Each key strategy pairs live meetings first, then set-aside ones: the cancelled meeting keeps its exact
+    # (date, company) row, and the live one still pairs by company with the row it moved to.
+    d = diff_revision([(1, row(date="2026-11-10")), (2, row(date="2026-11-11"))],
+                      [row(date="2026-11-10"), row(date="2026-11-12")], set_aside={1})
+    assert [(c.kind, c.meeting_id) for c in d.changes] == [("changed", 2)]
+    assert [(mid, r.date) for mid, r in d.set_aside] == [(1, "2026-11-10")]

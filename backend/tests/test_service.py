@@ -257,10 +257,70 @@ def test_failed_recreate_after_cancel_stays_cancelled_for_retry(seeded):
 
 def test_delete_unsent_meeting_removes_it(seeded):
     conf = make_conf(seeded)
-    first = detail(seeded, conf).meetings[0]
+    first = detail(seeded, conf).meetings[0]  # Northwind: from the broker, never sent
     assert service.delete_meeting(seeded, first.id) == "deleted"
-    assert seeded.get(Meeting, first.id) is None
+    d = detail(seeded, conf)
+    assert first.id not in {m.id for m in d.meetings}
+    assert (d.counts.total, d.counts.ready, d.counts.cancelled) == (11, 10, 0)
     assert seeded.exec(select(MeetingAttendee).where(MeetingAttendee.meeting_id == first.id)).all() == []
+    assert seeded.get(Meeting, first.id).status == "dismissed"  # kept, unseen, as the broker baseline
+
+
+def test_delete_unsent_manual_meeting_removes_the_row(seeded):
+    conf = make_conf(seeded)
+    m = service.add_meeting(seeded, conf.id, MeetingCreate(company="Coffee with IR", date="2026-11-10", start="17:00",
+                                                           attendee_ids=[ids(seeded)["Riley Chen"]]), 45)
+    assert service.delete_meeting(seeded, m.id) == "deleted"
+    assert seeded.get(Meeting, m.id) is None
+    assert seeded.exec(select(MeetingAttendee).where(MeetingAttendee.meeting_id == m.id)).all() == []
+
+
+def dismissed_northwind(session):
+    conf = make_conf(session)
+    first = detail(session, conf).meetings[0]  # Northwind 08:00-08:45: Avery + Jordan
+    service.delete_meeting(session, first.id)
+    assert session.get(Meeting, first.id).status == "dismissed"
+    return conf, first.id
+
+
+def test_dismissed_meeting_is_unreachable(seeded):
+    _, mid = dismissed_northwind(seeded)
+    for act in (lambda: service.update_meeting(seeded, mid, MeetingUpdate(room="X"), 45),
+                lambda: service.confirm_meeting(seeded, mid), lambda: service.unconfirm_meeting(seeded, mid),
+                lambda: service.delete_meeting(seeded, mid), lambda: service.get_meeting(seeded, mid)):
+        with pytest.raises(service.NotFound):
+            act()
+    assert seeded.get(Meeting, mid).status == "dismissed"
+
+
+def test_dismissed_meeting_raises_no_flags_on_live_ones(seeded):
+    conf, _ = dismissed_northwind(seeded)
+    people = ids(seeded)
+    dup = service.add_meeting(seeded, conf.id, MeetingCreate(company="Northwind Robotics", date="2026-11-10",
+                                                             start="08:00", end="08:45",
+                                                             attendee_ids=[people["Sam Patel"]]), 45)
+    overlap = service.add_meeting(seeded, conf.id, MeetingCreate(company="Coffee with IR", date="2026-11-10",
+                                                                 start="08:15", end="08:45",
+                                                                 attendee_ids=[people["Avery Kim"]]), 45)
+    d = detail(seeded, conf)
+    assert next(m for m in d.meetings if m.id == dup.id).flags == []  # no "duplicate"
+    assert next(m for m in d.meetings if m.id == overlap.id).flags == []  # no "double_booked" for Avery
+
+
+def test_dismissed_meetings_leave_dates_and_plans(seeded):
+    conf = make_conf(seeded)
+    service.confirm_ready(seeded, conf.id)  # verified, never sent: each has creates planned
+    d = detail(seeded, conf)
+    assert d.last_date == "2026-11-11"
+    for m in d.meetings:
+        if m.date == "2026-11-11":
+            service.delete_meeting(seeded, m.id)
+    service.delete_meeting(seeded, by_company(d, "Northwind Robotics").id)
+    d = detail(seeded, conf)
+    assert (d.first_date, d.last_date, d.counts.total) == ("2026-11-10", "2026-11-10", 5)
+    plan = service.plan_conference(seeded, conf.id, "ics")
+    assert {a.meeting_id for a in plan} == {m.id for m in d.meetings}  # nothing for the dismissed ones
+    assert d.counts.pending_actions == len(plan)
 
 
 def test_add_meeting_manual(seeded):
@@ -292,6 +352,12 @@ def test_delete_conference_removes_everything(seeded):
     assert seeded.exec(select(SyncRecord)).all() == []
     with pytest.raises(service.NotFound):
         service.get_conference(seeded, conf.id)
+
+
+def test_delete_conference_removes_dismissed_meetings(seeded):
+    conf, mid = dismissed_northwind(seeded)
+    service.delete_conference(seeded, conf.id)
+    assert seeded.get(Meeting, mid) is None and seeded.exec(select(Meeting)).all() == []
 
 
 def test_roster_crud_rules(seeded):
