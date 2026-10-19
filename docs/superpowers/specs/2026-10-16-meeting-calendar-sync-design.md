@@ -117,7 +117,8 @@ e.g. `["A. Kim", "Avery K."]`), `active` (bool, default true).
 `created_at`.
 
 **Meeting**: `id`, `conference_id`, `date` (nullable), `start_time` (nullable),
-`end_time` (nullable), `end_assumed` (bool), `room`, `company`, `ticker` (nullable),
+`end_time` (nullable), `end_assumed` (bool), `timezone` (IANA name or null; null follows the
+conference, added 2026-10-19), `room`, `company`, `ticker` (nullable),
 `format` (`one_on_one` | `group` | `meal` | `other`), `company_attendees` (JSON list),
 `raw_attendee_names` (JSON list — firm attendee names exactly as printed),
 `ignored_names` (JSON list — raw names the coordinator dismissed), `notes`,
@@ -221,7 +222,7 @@ excluded from the overlap/duplicate checks.
 
 | code | severity | when |
 |---|---|---|
-| `no_timezone` | block | conference timezone is null |
+| `no_timezone` | block | neither the meeting's own timezone nor the conference's is set |
 | `missing_date` | block | date null |
 | `missing_time` | block | start or end null |
 | `end_before_start` | block | end ≤ start |
@@ -229,8 +230,8 @@ excluded from the overlap/duplicate checks.
 | `assumed_end` | warn | `end_assumed` |
 | `unmatched_name` | warn | a raw name not matched to any attendee and not in `ignored_names` |
 | `fuzzy_match` | warn | any attendee with `match = fuzzy` |
-| `double_booked` | warn | an attendee is in another overlapping non-cancelled meeting (same date) |
-| `duplicate` | warn | another non-cancelled meeting with same date, start and company (case-insensitive) |
+| `double_booked` | warn | an attendee is in another overlapping non-cancelled meeting (same zone: same date and times; different zones: the real moments overlap) |
+| `duplicate` | warn | another non-cancelled meeting in the same zone with same date, start and company (case-insensitive) |
 
 ### Status rules
 
@@ -254,8 +255,11 @@ excluded from the overlap/duplicate checks.
 - Location: `"{hotel} – {room}"`, dropping empty parts.
 - Body (plain text, one item per line): conference name; "Company: " executives;
   "Also attending: " the other firm attendees; notes; "Source: {pdf_filename}, page {n}".
-- Start/end: hotel-local date+time converted to UTC via the conference timezone.
-- `content_hash`: SHA-256 of canonical JSON of subject, location, body, start UTC, end UTC.
+- Start/end: local date+time converted to UTC via the meeting's own timezone, else the conference's.
+- Category: every event carries the Outlook category "Conference" (Graph `categories`, ICS
+  `CATEGORIES`; the Google demo uses colour 10, green). Added 2026-10-19.
+- `content_hash`: SHA-256 of canonical JSON of subject, location, body, start UTC, end UTC and,
+  when present, categories.
 
 ### Planning a send (`calendar/planner.py`, pure function)
 
