@@ -89,7 +89,7 @@
   .tt-table colgroup { display: none; }
   .tt-row {
     display: grid;
-    grid-template-columns: 5.25rem minmax(0, 1fr) auto;
+    grid-template-columns: 5.75rem minmax(0, 1fr) auto;
     grid-template-areas: "time company status" "time meta status";
     column-gap: 0.75rem;
     row-gap: 0.25rem;
@@ -111,7 +111,7 @@
   .tt-table colgroup { display: none; }
   .tt-row {
     display: grid;
-    grid-template-columns: 5.25rem minmax(0, 1fr) auto;
+    grid-template-columns: 5.75rem minmax(0, 1fr) auto;
     grid-template-areas: "time company status" "time meta status";
     column-gap: 0.75rem;
     row-gap: 0.25rem;

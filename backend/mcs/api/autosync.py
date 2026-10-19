@@ -28,8 +28,10 @@ def auto_sync(request: Request, session: Session, conference_id: int) -> SyncSum
         return SyncSummary(ok=0, failed=0, message="Calendars are up to date.")
     try:
         sink = request.app.state.sink_factory()
-        if sink.name == "graph" and not request.app.state.graph_auth.status()["signed_in"]:
-            return SyncSummary(ok=0, failed=0, message="Sign in to Microsoft to update calendars.")
+        if sink.name in ("graph", "outlook-demo"):
+            status = request.app.state.graph_auth.status()
+            if not status["signed_in"]:
+                return SyncSummary(ok=0, failed=0, message=status["error"] or "Sign in to Microsoft to update calendars.")
         outcomes = service.send_conference(session, conference_id, sink)
     except (SinkNotConfigured, GraphAuthError) as exc:
         return SyncSummary(ok=0, failed=0, message=str(exc))

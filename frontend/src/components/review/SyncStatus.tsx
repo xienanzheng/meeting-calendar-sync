@@ -22,8 +22,8 @@ export interface SyncNote {
   at: number;
 }
 
-const ROUTES = { ics: ".ics files", graph: "Outlook (Microsoft Graph)" } as const;
-const SHORT_ROUTES = { ics: ".ics files", graph: "Outlook" } as const;
+const ROUTES = { ics: ".ics files", graph: "Outlook (Microsoft Graph)", "outlook-demo": "your Outlook demo calendar", "google-demo": "your Google demo calendar" } as const;
+const SHORT_ROUTES = { ics: ".ics files", graph: "Outlook", "outlook-demo": "Outlook demo", "google-demo": "Google demo" } as const;
 const NOTE_MS = 6000;
 
 /** Calendar entries the server has written for each colleague (the ones with a file to download). */
@@ -53,14 +53,15 @@ type Login =
   | { phase: "error"; message: string }
   | { phase: "done" };
 
-function GraphSignIn({ login, onStart }: { login: Login; onStart: () => void }) {
+function GraphSignIn({ login, onStart, demoTarget }: { login: Login; onStart: () => void; demoTarget?: { account: string; name: string } | null }) {
   const [copied, setCopied] = useState(false);
   return (
     <div className="p-4">
       <h2 className="font-heading text-[15px] font-bold text-navy">Sign in to Microsoft</h2>
       <p className="mt-1 text-[13px] text-muted">
-        Sign in with your own account. Verified meetings then go straight into each colleague's Outlook calendar through
-        your delegate access.
+        {demoTarget
+          ? `Sign in as ${demoTarget.account}. Verified meetings go into “${demoTarget.name}”, created automatically in your Outlook account. Each sample colleague has a labeled entry.`
+          : "Sign in with your own account. Verified meetings then go straight into each colleague's Outlook calendar through your delegate access."}
       </p>
       {login.phase === "starting" && (
         <p role="status" className="mt-3 flex items-center gap-2 text-[13px] font-semibold text-ink">
@@ -123,6 +124,16 @@ function GraphSignIn({ login, onStart }: { login: Login; onStart: () => void }) 
   );
 }
 
+/** Calendar entries carry the Outlook category "Conference"; its colour lives in each person's own Outlook. */
+function CategoryTip() {
+  return (
+    <p className="mt-3 rounded-md bg-cream px-3 py-2.5 text-[12.5px] leading-snug text-ink">
+      Entries carry the Outlook category <b>Conference</b>. To see them in green, each colleague adds a green
+      “Conference” category once (Categorize › All categories › New).
+    </p>
+  );
+}
+
 function CalendarFiles({ detail }: { detail: ConferenceDetail }) {
   const files = calendarFiles(detail);
   return (
@@ -152,6 +163,7 @@ function CalendarFiles({ detail }: { detail: ConferenceDetail }) {
               </li>
             ))}
           </ul>
+          <CategoryTip />
           <a
             href={icsZipUrl(detail.id)}
             download
@@ -241,7 +253,7 @@ export function SyncStatus({
     }
   }
 
-  const needsSignIn = sink === "graph" && !graph?.signed_in;
+  const needsSignIn = (sink === "graph" || sink === "outlook-demo") && !graph?.signed_in;
   const failed = detail.counts.failed;
   const pending = detail.counts.pending_actions;
   const onCalendars = onCalendarCount(detail);
@@ -334,14 +346,28 @@ export function SyncStatus({
 
       <Popover id={popId} anchor={anchor} label={needsSignIn ? "Sign in to Microsoft" : "Calendar status"}>
         {needsSignIn || login.phase === "done" ? (
-          <GraphSignIn login={login} onStart={startLogin} />
-        ) : sink === "graph" ? (
+          <GraphSignIn login={login} onStart={startLogin} demoTarget={config?.calendar_target} />
+        ) : sink === "google-demo" ? (
+          <div className="p-4">
+            <h2 className="font-heading text-[15px] font-bold text-navy">Google demo calendar</h2>
+            <p className="mt-1 text-[13px] text-muted">
+              Verified meetings sync to “{config?.calendar_target?.name}” in {config?.calendar_target?.account}.
+              Each sample colleague has a labeled entry, in green to mark it as a conference meeting. Edits update the
+              same entries.
+            </p>
+            <a href="https://calendar.google.com" target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-blue underline">
+              Open Google Calendar <ExternalLink className="size-3" aria-hidden="true" />
+            </a>
+          </div>
+        ) : sink !== "ics" ? (
           <div className="p-4">
             <h2 className="font-heading text-[15px] font-bold text-navy">Outlook calendars</h2>
             <p className="mt-1 text-[13px] text-muted">
-              Signed in as {graph?.account ?? "your account"}. Verified meetings go straight into each colleague's
-              Outlook calendar.
+              {sink === "outlook-demo"
+                ? `Signed in as ${graph?.account ?? config?.calendar_target?.account ?? "your account"}. Verified meetings sync to “${config?.calendar_target?.name ?? "Meeting Calendar Sync Demo"}”. Sample colleague names identify each entry.`
+                : `Signed in as ${graph?.account ?? "your account"}. Verified meetings go straight into each colleague's Outlook calendar.`}
             </p>
+            <CategoryTip />
           </div>
         ) : (
           <CalendarFiles detail={detail} />

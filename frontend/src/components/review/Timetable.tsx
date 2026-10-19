@@ -1,7 +1,7 @@
 import { TriangleAlert } from "lucide-react";
 import { useEffect, useRef, type KeyboardEvent } from "react";
 import type { Meeting } from "../../api";
-import { dayHeading, formatLabel, formatTime12, localHint } from "../../lib/format";
+import { dayHeading, formatLabel, formatTime12, localHint, meetingZone, tzLabel, zoneTag } from "../../lib/format";
 import { sharedWith, type DayGroup, type Selection } from "../../lib/review";
 import { Stamp } from "../Stamp";
 
@@ -13,7 +13,8 @@ const keepTime = (text: string) => text.replace(/(\d) (AM|PM)/g, "$1 $2");
 const cell = "border-b border-rule px-3 py-[11px] align-middle";
 
 function TimeCell({ meeting, hotelTz, viewerTz }: { meeting: Meeting; hotelTz: string | null; viewerTz: string }) {
-  const hint = localHint(meeting.date, meeting.start, hotelTz, viewerTz);
+  const hint = localHint(meeting.date, meeting.start, meetingZone(meeting, hotelTz), viewerTz);
+  const tag = zoneTag(meeting.timezone, hotelTz, meeting.date);
   const struck = meeting.review_state === "cancelled" ? "line-through decoration-[1.5px]" : "";
   const detail = meeting.start
     ? [`to ${keepTime(formatTime12(meeting.end))}${meeting.end_assumed ? " (assumed)" : ""}`, hint && keepTime(hint)]
@@ -22,7 +23,19 @@ function TimeCell({ meeting, hotelTz, viewerTz }: { meeting: Meeting; hotelTz: s
     : "time missing";
   return (
     <td className={`tt-time ${cell}`}>
-      <span className={`tabular block font-heading text-sm font-bold ${struck}`}>{formatTime12(meeting.start)}</span>
+      <span className="tabular block font-heading text-sm font-bold">
+        <span className={struck}>{formatTime12(meeting.start)}</span>
+        {/* A meeting on its own timezone says so, since its times aren't on the conference's clock. */}
+        {tag && meeting.timezone && (
+          <span
+            title={`${tzLabel(meeting.timezone)}, this meeting only`}
+            className="relative ml-1.5 inline-block whitespace-nowrap rounded-sm bg-select px-1 py-px align-[1px] text-[10.5px] leading-none text-navy"
+          >
+            {tag}
+            <span className="sr-only"> ({tzLabel(meeting.timezone)}, this meeting only)</span>
+          </span>
+        )}
+      </span>
       <span className="block text-xs font-medium leading-snug text-muted">{detail}</span>
     </td>
   );
@@ -189,7 +202,7 @@ export function Timetable({
               <table className="tt-table w-full table-fixed border-collapse">
                 <colgroup>
                   {/* Whole-pixel widths: fractional cell edges show as hairline seams in the selected-row tint. */}
-                  <col className="w-[6.5rem]" />
+                  <col className="w-[7.25rem]" />
                   <col />
                   <col className="w-[6.5rem]" />
                   <col className="w-[8.5rem]" />

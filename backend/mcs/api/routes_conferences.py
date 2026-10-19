@@ -179,7 +179,7 @@ def send(conference_id: int, request: Request, dry_run: bool = True, session: Se
         plan = service.plan_conference(session, conference_id, settings.calendar_sink)
         return service.send_result(session, conference_id, settings.calendar_sink, plan, dry_run=True)
     sink = request.app.state.sink_factory()
-    if sink.name == "graph" and not request.app.state.graph_auth.status()["signed_in"]:
+    if sink.name in ("graph", "outlook-demo") and not request.app.state.graph_auth.status()["signed_in"]:
         raise GraphAuthError("Sign in to Microsoft first.")
     outcomes = service.send_conference(session, conference_id, sink)
     return service.send_result(session, conference_id, sink.name, outcomes, dry_run=False)

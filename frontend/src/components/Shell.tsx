@@ -25,6 +25,8 @@ const EXTRACTOR_LABELS: Record<string, string> = {
 const SINK_LABELS: Record<string, string> = {
   ics: "Calendar · .ics",
   graph: "Calendar · Outlook",
+  "outlook-demo": "Calendar · Outlook demo",
+  "google-demo": "Calendar · Google demo",
 };
 
 function navClass(active: boolean): string {
@@ -55,8 +57,10 @@ function ConfigBadges({ config, error }: { config: AppConfig | null; error: stri
     );
   }
   if (!config) return null;
-  const graph = config.calendar_sink === "graph" ? config.graph : null;
-  const sinkTitle = graph
+  const graph = config.calendar_sink === "graph" || config.calendar_sink === "outlook-demo" ? config.graph : null;
+  const sinkTitle = config.calendar_sink === "outlook-demo" || config.calendar_sink === "google-demo"
+    ? `Demo calendar: ${config.calendar_target?.name ?? "Meeting Calendar Sync Demo"} in ${config.calendar_target?.account ?? "your account"}`
+    : graph
     ? graph.signed_in
       ? `Writing to Outlook through Microsoft Graph as ${graph.account ?? "the signed-in account"}`
       : "Writing to Outlook through Microsoft Graph (not signed in)"

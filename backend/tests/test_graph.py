@@ -1,5 +1,7 @@
+import dataclasses
 import datetime as dt
 import json
+from dataclasses import replace
 
 import httpx
 import pytest
@@ -40,7 +42,13 @@ def test_event_payload():
         "end": {"dateTime": "2026-11-10T13:45:00", "timeZone": "UTC"},
         "location": {"displayName": "The Example Grand Hotel – Salon 4"},
         "showAs": "busy",
+        "categories": [],
     }
+
+
+def test_event_payload_carries_the_outlook_category():
+    labelled = dataclasses.replace(CONTENT, categories=("Conference",))
+    assert event_payload(labelled)["categories"] == ["Conference"]
 
 
 def test_create_posts_to_the_colleagues_calendar():
@@ -69,6 +77,14 @@ def test_cancel_deletes_and_404_counts_as_done(status):
     sink, calls, _ = make_sink(lambda r: httpx.Response(status))
     [outcome] = sink.apply(Conference(id=1), [action("cancel", "AAMk-1", 2)])
     assert outcome.ok and calls[0].method == "DELETE"
+
+
+def test_cancel_without_saved_event_content_still_deletes():
+    sink, calls, _ = make_sink(lambda r: httpx.Response(204))
+    [outcome] = sink.apply(Conference(id=1), [replace(action("cancel", "existing", 1), content=None)])
+    assert outcome.ok
+    assert calls[0].method == "DELETE"
+    assert calls[0].url.path == "/v1.0/users/avery.kim@example.com/events/existing"
 
 
 @pytest.mark.parametrize("status,body,expected", [

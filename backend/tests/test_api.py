@@ -48,6 +48,28 @@ def test_health_and_config(client):
     assert cfg["graph"]["configured"] is False
 
 
+def test_personal_demo_config_exposes_target_and_uses_consumer_sign_in(settings):
+    settings.calendar_sink = "outlook-demo"
+    settings.graph_client_id = "demo-client"
+    settings.graph_expected_account = "isaac@example.com"
+    app = create_app(settings)
+    with TestClient(app) as c:
+        config = c.get("/api/config").json()
+        assert config["calendar_target"] == {"account": "isaac@example.com", "name": "Meeting Calendar Sync Demo"}
+        assert config["graph"]["configured"] is True
+        assert app.state.graph_auth.tenant_id == "consumers"
+        assert app.state.graph_auth.expected_account == "isaac@example.com"
+        assert app.state.graph_auth.scopes == ["Calendars.ReadWrite"]
+
+
+def test_google_demo_config_names_the_selected_account_and_calendar(settings):
+    settings.calendar_sink = "google-demo"
+    settings.google_expected_account = "isaac@example.com"
+    with TestClient(create_app(settings)) as c:
+        config = c.get("/api/config").json()
+        assert config["calendar_target"] == {"account": "isaac@example.com", "name": "Meeting Calendar Sync Demo"}
+
+
 def test_upload_review_and_pdf(client, settings):
     r = upload(client, default_attendee_ids="")
     assert r.status_code == 201, r.text
@@ -224,3 +246,21 @@ def test_spa_fallback(settings, tmp_path):
         assert c.get("/assets/app.js").text == "console.log(1)"
         r = c.get("/api/nope")
         assert r.status_code == 404 and "detail" in r.json()
+
+
+def test_a_meeting_can_use_its_own_timezone(client):
+    d = upload(client).json()
+    mid = d["meetings"][0]["id"]
+    one = lambda detail: next(m for m in detail["meetings"] if m["id"] == mid)  # noqa: E731
+    assert one(d)["timezone"] is None  # follows the conference (America/New_York)
+    d = client.patch(f"/api/meetings/{mid}", json={"timezone": "America/Chicago"}).json()
+    assert one(d)["timezone"] == "America/Chicago"
+    assert not any(f["code"] == "no_timezone" for f in one(d)["flags"])
+    r = client.patch(f"/api/meetings/{mid}", json={"timezone": "Central"})
+    assert r.status_code == 400 and "America/New_York" in r.json()["detail"]
+    d = client.patch(f"/api/conferences/{d['id']}", json={"timezone": "Europe/London"}).json()
+    assert one(d)["timezone"] == "America/Chicago"  # its own zone survives a conference change
+    for cleared in (None, "", "  "):
+        client.patch(f"/api/meetings/{mid}", json={"timezone": "Asia/Tokyo"})
+        d = client.patch(f"/api/meetings/{mid}", json={"timezone": cleared}).json()
+        assert one(d)["timezone"] is None

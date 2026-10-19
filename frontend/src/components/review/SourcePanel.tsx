@@ -16,6 +16,7 @@ import {
   Suspense,
   useEffect,
   useId,
+  useMemo,
   useRef,
   useState,
   type KeyboardEvent,
@@ -40,7 +41,7 @@ import {
   type Revision,
   type RevisionChange,
 } from "../../api";
-import { formatLabel, formatTime12 } from "../../lib/format";
+import { formatLabel, formatTime12, localHint, meetingZone, tzLabel, tzShort, viewerZone, zoneTag } from "../../lib/format";
 import { readableSummary } from "../../lib/revision";
 import { conferenceDates, isOnCalendars, sharedWith, type Selection } from "../../lib/review";
 import { Button, ConfirmButton } from "../Button";
@@ -49,6 +50,7 @@ import { Note } from "../Note";
 import { AttendeePicker } from "./AttendeePicker";
 import { DateSelect, OTHER_DATE, OtherDateInput } from "./DateSelect";
 import type { RowTarget } from "./PdfViewer";
+import { TimezonePopover } from "./TimezonePopover";
 
 // pdf.js is large; it loads with the first source panel, not with the app.
 const PdfViewer = lazy(() => import("./PdfViewer"));
@@ -446,17 +448,99 @@ function SyncLines({ meeting }: { meeting: Meeting }) {
   );
 }
 
+// ---------- the meeting's own timezone ----------
+
+/**
+ * The zone this meeting's Start and End are read in. It starts as the conference's; changing it moves only
+ * this meeting. Underneath, the start on the viewer's own clock, so CR can check the time before verifying.
+ */
+function TimezoneField({
+  meeting,
+  conferenceTz,
+  disabled,
+  className = "",
+  onSave,
+}: {
+  meeting: Meeting;
+  conferenceTz: string | null;
+  disabled?: boolean;
+  className?: string;
+  onSave: (timezone: string | null) => Promise<unknown>;
+}) {
+  const anchor = useRef<HTMLButtonElement>(null);
+  const viewerTz = useMemo(() => viewerZone(), []);
+  const zone = meetingZone(meeting, conferenceTz);
+  const own = zoneTag(meeting.timezone, conferenceTz) !== null;
+  const scope = own ? "this meeting only" : "conference default";
+  const hint = localHint(meeting.date, meeting.start, zone, viewerTz);
+  const popId = `meeting-tz-${meeting.id}`;
+  const others = conferenceTz ? `the conference timezone (${tzLabel(conferenceTz)})` : "the conference timezone once it's set";
+
+  return (
+    <div className={className}>
+      <span aria-hidden="true" className={fieldLabelClass}>
+        Timezone
+      </span>
+      <button
+        ref={anchor}
+        type="button"
+        popoverTarget={popId}
+        disabled={disabled}
+        aria-label={`Timezone: ${zone ? `${tzLabel(zone)}, ${scope}` : "not set"}. Change it`}
+        className={`${inputClass} flex items-center gap-2 text-left`}
+      >
+        {zone ? (
+          <span className="min-w-0 flex-1 truncate">
+            {tzLabel(zone)}
+            <span className={`ml-1.5 font-normal ${own ? "text-navy" : "text-muted"}`}>· {scope}</span>
+          </span>
+        ) : (
+          <span className="flex min-w-0 flex-1 items-center gap-1.5 font-semibold text-red">
+            <CircleAlert className="size-4 shrink-0" aria-hidden="true" /> Set a timezone
+          </span>
+        )}
+        <ChevronDown className="size-4 shrink-0 text-muted" aria-hidden="true" />
+      </button>
+      {zone && meeting.date && meeting.start && (
+        <p className="mt-1 text-xs font-medium text-muted">{hint ? `Your time: ${hint}` : "Same as your time"}</p>
+      )}
+      <TimezonePopover
+        id={popId}
+        anchor={anchor}
+        title="Timezone for this meeting"
+        description={`Start and End are read in this zone. Changing it moves only this meeting, on colleagues' calendars too. Other meetings keep ${others}.`}
+        current={zone}
+        onSave={async (tz) => {
+          await onSave(tz === conferenceTz ? null : tz);
+        }}
+        reset={
+          meeting.timezone && conferenceTz && meeting.timezone !== conferenceTz
+            ? {
+                label: `Use conference (${tzShort(conferenceTz)})`,
+                onReset: async () => {
+                  await onSave(null);
+                },
+              }
+            : undefined
+        }
+      />
+    </div>
+  );
+}
+
 // ---------- the editor for one meeting ----------
 
 function MeetingEditor({
   meeting,
   dates,
+  conferenceTz,
   selection,
   roster,
   run,
 }: {
   meeting: Meeting;
   dates: string[];
+  conferenceTz: string | null;
   selection: Selection;
   roster: Analyst[] | null;
   run: Run;
@@ -501,6 +585,13 @@ function MeetingEditor({
           disabled={cancelled}
           hint={meeting.end_assumed ? <span className="normal-case tracking-normal text-amber">(assumed)</span> : null}
           onSave={(v) => save({ end: v || null })}
+        />
+        <TimezoneField
+          className="col-span-2"
+          meeting={meeting}
+          conferenceTz={conferenceTz}
+          disabled={cancelled}
+          onSave={(timezone) => save({ timezone })}
         />
         <Field label="Room" value={meeting.room} placeholder="Room" disabled={cancelled} onSave={(v) => save({ room: v })} />
         <FormatField value={meeting.format} disabled={cancelled} onSave={(format) => save({ format })} />
@@ -734,6 +825,7 @@ export function SourcePanel({
             key={meeting.id}
             meeting={meeting}
             dates={conferenceDates(detail)}
+            conferenceTz={detail.timezone}
             selection={selection}
             roster={roster}
             run={run}

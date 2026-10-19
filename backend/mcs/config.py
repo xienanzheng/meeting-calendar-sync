@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     model: str | None = None
     extract_timeout: int = 240
     claude_bin: str = "claude"
-    calendar_sink: Literal["ics", "graph"] = "ics"
+    calendar_sink: Literal["ics", "graph", "outlook-demo", "google-demo"] = "ics"
     default_meeting_minutes: int = 45
     data_dir: Path = REPO_ROOT / "data"
     samples_dir: Path = REPO_ROOT / "samples"
@@ -29,6 +29,8 @@ class Settings(BaseSettings):
     port: int = 8765
     graph_client_id: str | None = None
     graph_tenant_id: str | None = None
+    graph_expected_account: str | None = None
+    google_expected_account: str | None = None
     max_upload_mb: int = 20
     use_keychain: bool = True
     ephemeral: bool = False  # hosted demo: data resets when the container sleeps

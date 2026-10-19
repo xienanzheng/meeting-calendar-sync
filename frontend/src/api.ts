@@ -28,6 +28,7 @@ export interface Meeting {
   start: string | null; // HH:MM, hotel-local
   end: string | null;
   end_assumed: boolean;
+  timezone: string | null; // the meeting's own zone; null follows the conference's
   room: string;
   company: string;
   ticker: string | null;
@@ -165,6 +166,7 @@ export interface MeetingUpdate {
   date?: string | null;
   start?: string | null;
   end?: string | null;
+  timezone?: string | null; // null: follow the conference
   room?: string;
   company?: string;
   ticker?: string | null;
@@ -231,7 +233,8 @@ export interface GraphLoginStart {
 export interface AppConfig {
   extractor: string; // anthropic | claude-code | foundry | fake
   model: string;
-  calendar_sink: "ics" | "graph";
+  calendar_sink: "ics" | "graph" | "outlook-demo" | "google-demo";
+  calendar_target?: { account: string; name: string } | null;
   ephemeral: boolean;
   graph: GraphStatus;
 }

@@ -37,6 +37,7 @@ class Meeting(SQLModel, table=True):
     start_time: dt.time | None = None
     end_time: dt.time | None = None
     end_assumed: bool = False
+    timezone: str | None = None  # this meeting's own IANA zone; None follows the conference
     room: str = ""
     company: str
     ticker: str | None = None
@@ -76,7 +77,7 @@ class SyncRecord(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     meeting_id: int = Field(foreign_key="meeting.id", index=True)
     analyst_id: int = Field(foreign_key="analyst.id")
-    sink: str  # ics | graph
+    sink: str  # ics | graph | outlook-demo
     external_id: str | None = None  # ICS UID or Graph event id; None until a create succeeds
     content_hash: str = ""
     content_json: str = ""  # last successfully sent EventContent as JSON

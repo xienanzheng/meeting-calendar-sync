@@ -122,3 +122,21 @@ def test_application_creation_is_thread_safe():
 
     assert call_count[0] == 1, f"Factory should be called exactly once, but was called {call_count[0]} times"
     assert len(set(id(app) for app in results)) == 1, "All threads should get the same app instance"
+
+
+def test_personal_mode_requests_own_calendar_permission_and_selects_pinned_account():
+    app = FakeApp("client", "consumers")
+    auth = GraphAuth("client", "consumers", app_factory=lambda *a, **k: app,
+                     scopes=["Calendars.ReadWrite"], expected_account="Isaac@Example.com",
+                     run_in_background=lambda fn: fn())
+    auth.start_device_flow()
+    assert app.scopes == ["Calendars.ReadWrite"]
+    assert auth.status()["signed_in"] is False
+    assert "Isaac@Example.com" in auth.status()["error"]
+    with pytest.raises(GraphAuthError, match="Isaac@Example.com"):
+        auth.token()
+    app.accounts = [{"username": "other@example.com"}, {"username": "isaac@example.com"}]
+    assert auth.status()["signed_in"] is True
+    assert auth.status()["account"] == "isaac@example.com"
+    assert auth.status()["error"] is None
+    assert auth.token() == "tok"

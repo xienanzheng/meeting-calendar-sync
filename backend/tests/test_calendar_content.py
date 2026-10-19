@@ -72,3 +72,32 @@ def test_hash_and_json_roundtrip():
     assert a.content_hash() == b.content_hash()
     assert build_event(conf(), meeting(room="Salon 2"), ["Jordan Lee"]).content_hash() != a.content_hash()
     assert EventContent.from_json(a.to_json()) == a
+
+
+def test_meeting_timezone_overrides_the_conference():
+    e = build_event(conf(), meeting(timezone="America/Chicago"), [])
+    assert e.start_utc == dt.datetime(2026, 11, 10, 14, 0, tzinfo=UTC)  # 8:00 AM Central
+    assert e.end_utc == dt.datetime(2026, 11, 10, 14, 45, tzinfo=UTC)
+
+
+def test_meeting_timezone_is_enough_without_a_conference_one():
+    assert build_event(conf(timezone=None), meeting(timezone="Europe/London"), []).start_utc == \
+        dt.datetime(2026, 11, 10, 8, 0, tzinfo=UTC)
+    with pytest.raises(ValueError):
+        build_event(conf(timezone=None), meeting(), [])
+
+
+def test_events_carry_the_conference_category_through_json():
+    e = build_event(conf(), meeting(), [])
+    assert e.categories == ("Conference",)
+    assert EventContent.from_json(e.to_json()) == e
+
+
+def test_content_saved_before_categories_still_loads_and_hashes_differently():
+    old = EventContent("s", "l", "b", dt.datetime(2026, 11, 10, 13, tzinfo=UTC), dt.datetime(2026, 11, 10, 14, tzinfo=UTC))
+    assert old.categories == ()
+    assert EventContent.from_json('{"body": "b", "end": "2026-11-10T14:00:00+00:00", "location": "l", '
+                                  '"start": "2026-11-10T13:00:00+00:00", "subject": "s"}') == old
+    labelled = EventContent(*[getattr(old, f) for f in ("subject", "location", "body", "start_utc", "end_utc")],
+                            categories=("Conference",))
+    assert labelled.content_hash() != old.content_hash()  # sent events pick up the label on the next sync

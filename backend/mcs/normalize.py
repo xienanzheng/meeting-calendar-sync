@@ -122,6 +122,7 @@ class MeetingView:
     attendees: tuple[tuple[int, str], ...] = ()
     raw_attendee_names: tuple[str, ...] = ()
     ignored_names: tuple[str, ...] = ()
+    timezone: str | None = None  # the meeting's own zone; None follows the conference
 
 
 BLOCK_CODES = frozenset({"no_timezone", "missing_date", "missing_time", "end_before_start", "no_attendee"})
@@ -135,6 +136,22 @@ def _times_ok(m: MeetingView) -> bool:
     return m.start_time is not None and m.end_time is not None and m.end_time > m.start_time
 
 
+def _span(m: MeetingView, zone: str | None) -> tuple[dt.datetime, dt.datetime] | None:
+    """The meeting as real moments, when its date, times and zone are all known."""
+    if not (zone and m.date and _times_ok(m)):
+        return None
+    try:
+        tz = ZoneInfo(zone)
+    except (ValueError, KeyError, OSError):
+        return None
+    return dt.datetime.combine(m.date, m.start_time, tzinfo=tz), dt.datetime.combine(m.date, m.end_time, tzinfo=tz)
+
+
+def _zone_place(zone: str) -> str:
+    """'America/New_York' -> 'New York'."""
+    return zone.rsplit("/", 1)[-1].replace("_", " ")
+
+
 def compute_flags(timezone: str | None, meetings: Sequence[MeetingView],
                   roster: Sequence[RosterEntry]) -> dict[int, list[Flag]]:
     names = {r.id: r.name for r in roster}
@@ -143,7 +160,7 @@ def compute_flags(timezone: str | None, meetings: Sequence[MeetingView],
 
     for m in live:
         flags = out[m.id]
-        if not timezone:
+        if not (m.timezone or timezone):
             flags.append(Flag("no_timezone", "block", "Set the conference timezone."))
         if m.date is None:
             flags.append(Flag("missing_date", "block", "The date is missing."))
@@ -170,21 +187,32 @@ def compute_flags(timezone: str | None, meetings: Sequence[MeetingView],
 
     for i, a in enumerate(live):
         for b in live[i + 1:]:
-            if a.date is None or a.date != b.date:
-                continue
-            if (a.start_time is not None and a.start_time == b.start_time
-                    and a.company.casefold().strip() == b.company.casefold().strip()):
-                out[a.id].append(Flag("duplicate", "warn", "Same company, date and time as another row."))
-                out[b.id].append(Flag("duplicate", "warn", "Same company, date and time as another row."))
-                continue
-            if not (_times_ok(a) and _times_ok(b)):
-                continue
-            if a.start_time < b.end_time and b.start_time < a.end_time:
+            zone_a, zone_b = a.timezone or timezone, b.timezone or timezone
+            if zone_a == zone_b:
+                # Same zone (or none set yet): the printed date and times compare directly.
+                if a.date is None or a.date != b.date:
+                    continue
+                if (a.start_time is not None and a.start_time == b.start_time
+                        and a.company.casefold().strip() == b.company.casefold().strip()):
+                    out[a.id].append(Flag("duplicate", "warn", "Same company, date and time as another row."))
+                    out[b.id].append(Flag("duplicate", "warn", "Same company, date and time as another row."))
+                    continue
+                if not (_times_ok(a) and _times_ok(b)):
+                    continue
+                overlap = a.start_time < b.end_time and b.start_time < a.end_time
+                at_a, at_b = clock_12h(a.start_time), clock_12h(b.start_time)
+            else:
+                # Different zones: compare the real moments, and say whose clock a time is on.
+                span_a, span_b = _span(a, zone_a), _span(b, zone_b)
+                if span_a is None or span_b is None:
+                    continue
+                overlap = span_a[0] < span_b[1] and span_b[0] < span_a[1]
+                at_a = f"{clock_12h(a.start_time)} {_zone_place(zone_a)} time"
+                at_b = f"{clock_12h(b.start_time)} {_zone_place(zone_b)} time"
+            if overlap:
                 shared = sorted({x for x, _ in a.attendees} & {x for x, _ in b.attendees})
                 for aid in shared:
                     who = names.get(aid, "A colleague")
-                    out[a.id].append(Flag("double_booked", "warn",
-                                          f"{who} is also in {b.company} at {clock_12h(b.start_time)}."))
-                    out[b.id].append(Flag("double_booked", "warn",
-                                          f"{who} is also in {a.company} at {clock_12h(a.start_time)}."))
+                    out[a.id].append(Flag("double_booked", "warn", f"{who} is also in {b.company} at {at_b}."))
+                    out[b.id].append(Flag("double_booked", "warn", f"{who} is also in {a.company} at {at_a}."))
     return out

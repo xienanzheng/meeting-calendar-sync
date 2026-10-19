@@ -63,3 +63,15 @@ def test_slug_and_zip():
     with zipfile.ZipFile(io.BytesIO(data)) as z:
         assert sorted(z.namelist()) == ["avery-kim.ics", "jordan-lee.ics"]
         assert z.read("jordan-lee.ics") == b"B"
+
+
+def test_render_includes_the_category():
+    labelled = EventContent(*[getattr(content(), f) for f in ("subject", "location", "body", "start_utc", "end_utc")],
+                            categories=("Conference",))
+    rec = SyncRecord(meeting_id=10, analyst_id=1, sink="ics", external_id="uid-a", content_json=labelled.to_json(),
+                     sequence=0, state="active")
+    event = Calendar.from_ical(render_ics([rec])).walk("VEVENT")[0]
+    assert [str(c) for c in event["CATEGORIES"].cats] == ["Conference"]
+    plain = SyncRecord(meeting_id=11, analyst_id=1, sink="ics", external_id="uid-b", content_json=content().to_json(),
+                       sequence=0, state="active")
+    assert "CATEGORIES" not in Calendar.from_ical(render_ics([plain])).walk("VEVENT")[0]

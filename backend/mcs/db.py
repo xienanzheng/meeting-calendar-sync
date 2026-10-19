@@ -24,3 +24,5 @@ def _upgrade(engine: Engine) -> None:
         columns = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(meeting)")}
         if "source_json" not in columns:
             conn.exec_driver_sql("ALTER TABLE meeting ADD COLUMN source_json VARCHAR NOT NULL DEFAULT ''")
+        if "timezone" not in columns:
+            conn.exec_driver_sql("ALTER TABLE meeting ADD COLUMN timezone VARCHAR")

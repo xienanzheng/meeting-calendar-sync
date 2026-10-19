@@ -95,3 +95,23 @@ def test_block_codes_and_has_block():
     assert BLOCK_CODES == {"no_timezone", "missing_date", "missing_time", "end_before_start", "no_attendee"}
     assert has_block([Flag("assumed_end", "warn", "x"), Flag("no_attendee", "block", "y")])
     assert not has_block([Flag("assumed_end", "warn", "x")])
+
+
+def test_a_meeting_timezone_satisfies_the_timezone_check():
+    out = compute_flags(None, [mv(1, timezone="America/Chicago"), mv(2, company="Other", start=(13, 0), end=(13, 30))],
+                        ROSTER)
+    assert codes(out[1]) == [] and codes(out[2]) == ["no_timezone"]
+
+
+def test_clashes_compare_real_times_across_timezones():
+    chicago = "America/Chicago"
+    # 9:00 Eastern and 9:00 Central are an hour apart, and not the same printed row either.
+    out = compute_flags(TZ, [mv(1, company="A"), mv(2, company="B", timezone=chicago),
+                             mv(3, company="A", timezone=chicago, attendees=((4, "exact"),))], ROSTER)
+    assert codes(out[1]) == [] and codes(out[2]) == [] and codes(out[3]) == []
+    # 10:00 Eastern and 9:00 Central are the same moment.
+    out = compute_flags(TZ, [mv(1, company="A", start=(10, 0), end=(10, 45)), mv(2, company="B", timezone=chicago)],
+                        ROSTER)
+    assert codes(out[1]) == ["double_booked"] and codes(out[2]) == ["double_booked"]
+    assert out[1][0].message == "Avery Kim is also in B at 9:00 AM Chicago time."
+    assert out[2][0].message == "Avery Kim is also in A at 10:00 AM New York time."

@@ -30,6 +30,7 @@ class MeetingOut(BaseModel):
     start: str | None
     end: str | None
     end_assumed: bool
+    timezone: str | None  # the meeting's own zone; None follows the conference's
     room: str
     company: str
     ticker: str | None
@@ -170,6 +171,7 @@ class MeetingUpdate(BaseModel):
     date: str | None = None
     start: str | None = None
     end: str | None = None
+    timezone: str | None = None  # null or blank: follow the conference
     room: str | None = None
     company: str | None = None
     ticker: str | None = None

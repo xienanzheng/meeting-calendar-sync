@@ -9,6 +9,7 @@ from mcs import service
 from mcs.api import routes_conferences, routes_meetings, routes_revisions, routes_roster, routes_system
 from mcs.calendar import SinkNotConfigured, get_sink
 from mcs.calendar.graph_auth import GraphAuth, GraphAuthError
+from mcs.calendar.google_auth import GoogleAuth
 from mcs.config import Settings, get_settings
 from mcs.db import make_engine
 from mcs.extraction import ExtractionError, get_extractor
@@ -25,9 +26,15 @@ def create_app(settings: Settings | None = None, *, extractor_factory: Callable 
     app.state.settings = settings
     app.state.engine = make_engine(settings)
     settings.uploads_dir.mkdir(parents=True, exist_ok=True)
-    app.state.graph_auth = graph_auth or GraphAuth(settings.graph_client_id, settings.graph_tenant_id)
+    personal_demo = settings.calendar_sink == "outlook-demo"
+    app.state.graph_auth = graph_auth or GraphAuth(
+        settings.graph_client_id, settings.graph_tenant_id or ("consumers" if personal_demo else None),
+        scopes=["Calendars.ReadWrite"] if personal_demo else None,
+        expected_account=settings.graph_expected_account if personal_demo else None,
+    )
     app.state.extractor_factory = extractor_factory or (lambda: get_extractor(settings))
-    app.state.sink_factory = sink_factory or (lambda: get_sink(settings, app.state.graph_auth))
+    app.state.google_auth = GoogleAuth(settings.data_dir / "google-oauth.json")
+    app.state.sink_factory = sink_factory or (lambda: get_sink(settings, app.state.graph_auth, google_auth=app.state.google_auth))
 
     app.add_exception_handler(service.NotFound, lambda r, e: _error(404, str(e)))
     app.add_exception_handler(service.InvalidInput, lambda r, e: _error(400, str(e)))

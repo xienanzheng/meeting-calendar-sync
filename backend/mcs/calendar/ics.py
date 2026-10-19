@@ -46,6 +46,8 @@ def render_ics(records: Sequence[SyncRecord], now: dt.datetime | None = None) ->
         event.add("dtstamp", stamp)
         event.add("sequence", rec.sequence)
         event.add("status", "CANCELLED" if rec.state == "cancelled" else "CONFIRMED")
+        if content.categories:
+            event.add("categories", list(content.categories))
         cal.add_component(event)
     return cal.to_ical()
 

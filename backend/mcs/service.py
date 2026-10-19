@@ -100,7 +100,7 @@ def _views(meetings: Sequence[Meeting], att: dict[int, list[tuple[int, str]]]) -
     return [MeetingView(id=m.id, date=m.date, start_time=m.start_time, end_time=m.end_time,
                         end_assumed=m.end_assumed, company=m.company, status=m.status,
                         attendees=tuple(att.get(m.id, [])), raw_attendee_names=tuple(m.raw_attendee_names),
-                        ignored_names=tuple(m.ignored_names)) for m in meetings]
+                        ignored_names=tuple(m.ignored_names), timezone=m.timezone) for m in meetings]
 
 
 def _flags(session: Session, conference: Conference, meetings: Sequence[Meeting]):
@@ -332,6 +332,16 @@ def add_meeting(session: Session, conference_id: int, data: MeetingCreate, defau
     return meeting
 
 
+def _meeting_timezone(value: str | None) -> str | None:
+    """A meeting's own zone: blank means "follow the conference"."""
+    zone = (value or "").strip()
+    if not zone:
+        return None
+    if valid_timezone(zone) is None:
+        raise InvalidInput(f"Unknown timezone {zone!r}. Use an IANA name like America/New_York.")
+    return zone
+
+
 def update_meeting(session: Session, meeting_id: int, data: MeetingUpdate, default_minutes: int) -> Meeting:
     meeting = get_meeting(session, meeting_id)
     if meeting.status == "cancelled":
@@ -352,6 +362,8 @@ def update_meeting(session: Session, meeting_id: int, data: MeetingUpdate, defau
         meeting.company = data.company.strip()
     if "room" in fields:
         meeting.room = (data.room or "").strip()
+    if "timezone" in fields:
+        meeting.timezone = _meeting_timezone(data.timezone)
     if "ticker" in fields:
         meeting.ticker = (data.ticker or "").strip() or None
     if "format" in fields and data.format:
@@ -591,7 +603,8 @@ def conference_detail(session: Session, conference_id: int, sink_name: str, skip
             state = "sent" if all_sent else "verified"
         out.append(MeetingOut(
             id=m.id, conference_id=m.conference_id, date=m.date.isoformat() if m.date else None,
-            start=_hhmm(m.start_time), end=_hhmm(m.end_time), end_assumed=m.end_assumed, room=m.room,
+            start=_hhmm(m.start_time), end=_hhmm(m.end_time), end_assumed=m.end_assumed, timezone=m.timezone,
+            room=m.room,
             company=m.company, ticker=m.ticker, format=m.format, company_attendees=list(m.company_attendees),
             raw_attendee_names=list(m.raw_attendee_names), ignored_names=list(m.ignored_names),
             unmatched_names=_unmatched(m, set(ids), roster), notes=m.notes, source_page=m.source_page,

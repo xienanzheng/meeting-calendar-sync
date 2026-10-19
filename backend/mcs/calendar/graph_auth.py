@@ -18,7 +18,8 @@ def _thread(fn: Callable[[], None]) -> None:
 class GraphAuth:
     def __init__(self, client_id: str | None, tenant_id: str | None,
                  app_factory=msal.PublicClientApplication,
-                 run_in_background: Callable[[Callable[[], None]], None] | None = None):
+                 run_in_background: Callable[[Callable[[], None]], None] | None = None,
+                 *, scopes: list[str] | None = None, expected_account: str | None = None):
         self.client_id = client_id
         self.tenant_id = tenant_id
         self._app_factory = app_factory
@@ -27,6 +28,18 @@ class GraphAuth:
         self._lock = threading.Lock()
         self._pending = False
         self._error: str | None = None
+        self.scopes = list(scopes) if scopes is not None else SCOPES
+        self.expected_account = expected_account
+
+    def _account(self, app):
+        accounts = app.get_accounts() if app else []
+        if self.expected_account:
+            return next((a for a in accounts if a.get("username", "").casefold() ==
+                         self.expected_account.casefold()), None)
+        return accounts[0] if accounts else None
+
+    def _account_error(self) -> str:
+        return f"Sign in as {self.expected_account} to use this demo calendar."
 
     @property
     def configured(self) -> bool:
@@ -43,7 +56,7 @@ class GraphAuth:
 
     def start_device_flow(self) -> dict:
         app = self._application()
-        flow = app.initiate_device_flow(scopes=SCOPES)
+        flow = app.initiate_device_flow(scopes=self.scopes)
         if "user_code" not in flow:
             raise GraphAuthError(flow.get("error_description") or "Could not start Microsoft sign-in.")
         with self._lock:
@@ -65,19 +78,22 @@ class GraphAuth:
         with self._lock:
             app = self._app
         if self.configured and app is not None:
-            accounts = app.get_accounts()
-            if accounts:
-                signed_in, account = True, accounts[0].get("username")
+            selected = self._account(app)
+            if selected:
+                signed_in, account = True, selected.get("username")
         with self._lock:
+            error = self._error
+            if self.expected_account and app is not None and app.get_accounts():
+                error = None if signed_in else self._account_error()
             return {"configured": self.configured, "signed_in": signed_in, "pending": self._pending,
-                    "account": account, "error": self._error}
+                    "account": account, "error": error}
 
     def token(self) -> str:
         app = self._application()
-        accounts = app.get_accounts()
-        if not accounts:
-            raise GraphAuthError("Sign in to Microsoft first.")
-        result = app.acquire_token_silent(SCOPES, account=accounts[0])
+        account = self._account(app)
+        if account is None:
+            raise GraphAuthError(self._account_error() if self.expected_account else "Sign in to Microsoft first.")
+        result = app.acquire_token_silent(self.scopes, account=account)
         if not result or "access_token" not in result:
             raise GraphAuthError("Sign in to Microsoft again.")
         return result["access_token"]

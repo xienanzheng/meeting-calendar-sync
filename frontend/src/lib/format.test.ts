@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dateRange, dayHeading, formatTime12, localHint, tzLabel, tzShort } from "./format";
+import { dateRange, dayHeading, formatTime12, localHint, meetingZone, tzLabel, tzShort, zoneMatches, zoneTag } from "./format";
 
 describe("formatTime12", () => {
   it.each([
@@ -47,5 +47,40 @@ describe("tzShort", () => {
   it("falls back to an offset name, and copes with no zone", () => {
     expect(tzShort("Asia/Kolkata")).toMatch(/^(GMT\+5:30|IST)$/);
     expect(tzShort(null)).toBe("No timezone");
+  });
+});
+
+describe("meetingZone", () => {
+  it("uses the meeting's own zone, else the conference's", () => {
+    expect(meetingZone({ timezone: "America/Chicago" }, "America/New_York")).toBe("America/Chicago");
+    expect(meetingZone({ timezone: null }, "America/New_York")).toBe("America/New_York");
+    expect(meetingZone({ timezone: null }, null)).toBeNull();
+  });
+});
+
+describe("zoneTag", () => {
+  it("names a meeting's zone only when it differs from the conference's", () => {
+    expect(zoneTag("America/Chicago", "America/New_York")).toBe("CT");
+    expect(zoneTag("America/New_York", "America/New_York")).toBeNull();
+    expect(zoneTag(null, "America/New_York")).toBeNull();
+    expect(zoneTag("Asia/Tokyo", null)).toBe("JT");
+  });
+  it("names an offset as it is on the meeting's date, not today", () => {
+    expect(zoneTag("Europe/Paris", "America/New_York", "2026-11-10")).toBe("GMT+1");
+    expect(zoneTag("Europe/Paris", "America/New_York", "2026-07-10")).toBe("GMT+2");
+  });
+});
+
+describe("zoneMatches", () => {
+  const zones = ["America/Chicago", "America/New_York", "Asia/Tokyo", "Europe/London"];
+  it("matches city words in any order, ignoring case and spaces", () => {
+    expect(zoneMatches("new york", zones)).toEqual(["America/New_York"]);
+    expect(zoneMatches("YORK america", zones)).toEqual(["America/New_York"]);
+    expect(zoneMatches("", zones)).toEqual(zones);
+    expect(zoneMatches("paris", zones)).toEqual([]);
+  });
+  it("keeps the current choice visible even when the search hides it", () => {
+    expect(zoneMatches("tokyo", zones, "Europe/London")).toEqual(["Europe/London", "Asia/Tokyo"]);
+    expect(zoneMatches("tokyo", zones, "Asia/Tokyo")).toEqual(["Asia/Tokyo"]);
   });
 });

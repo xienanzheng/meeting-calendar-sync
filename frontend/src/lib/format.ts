@@ -58,12 +58,36 @@ export function dayHeading(isoDate: string | null): string {
   return day ? day.toFormat("cccc, LLLL d") : "Date missing";
 }
 
-/** "ET" for America/New_York, the short names the local-time hints use; else an offset name like "GMT+5:30". */
-export function tzShort(tz: string | null): string {
+/**
+ * "ET" for America/New_York, the short names the local-time hints use; else an offset name like "GMT+5:30",
+ * as it is on `onDate` (YYYY-MM-DD) when given, since offsets change with daylight saving.
+ */
+export function tzShort(tz: string | null, onDate?: string | null): string {
   if (!tz) return "No timezone";
   if (ZONE_ABBR[tz]) return ZONE_ABBR[tz];
-  const now = DateTime.now().setZone(tz);
-  return now.isValid ? now.setLocale(LOCALE).toFormat("ZZZZ") : tz;
+  const day = onDate ? DateTime.fromISO(`${onDate}T12:00`, { zone: tz }) : null;
+  const at = day?.isValid ? day : DateTime.now().setZone(tz);
+  return at.isValid ? at.setLocale(LOCALE).toFormat("ZZZZ") : tz;
+}
+
+/** The zone a meeting's times are read in: its own, else the conference's. */
+export function meetingZone(meeting: { timezone: string | null }, conferenceTz: string | null): string | null {
+  return meeting.timezone ?? conferenceTz;
+}
+
+/** A short tag ("CT") for a meeting whose own zone differs from the conference's; null when it follows it. */
+export function zoneTag(meetingTz: string | null, conferenceTz: string | null, onDate?: string | null): string | null {
+  return meetingTz && meetingTz !== conferenceTz ? tzShort(meetingTz, onDate) : null;
+}
+
+/**
+ * Zones whose name contains every word of the search ("new york", "york america"), with `keep` (the current
+ * choice) first when the search would hide it, so the selected option never disappears from the list.
+ */
+export function zoneMatches(query: string, zones: string[], keep?: string | null): string[] {
+  const words = query.toLowerCase().replace(/\s+/g, "_").split(/[_/]+/).filter(Boolean);
+  const list = zones.filter((z) => words.every((w) => z.toLowerCase().includes(w)));
+  return keep && !list.includes(keep) ? [keep, ...list] : list;
 }
 
 /** "Eastern time" for America/New_York; the raw zone name when Intl can't name it. */
