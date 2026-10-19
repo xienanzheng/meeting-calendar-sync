@@ -473,9 +473,14 @@ accounts; persistent hosted storage (D1/R2); Teams; recurring events; attachment
 - **Cloudflare:** `deploy/cloudflare/` holds `wrangler.jsonc` and a Worker built on
   `@cloudflare/containers`. The Worker runs one container instance
   (`getContainer(env.MCS, "main")`, `sleepAfter = "2h"`).
-  - It requires HTTP Basic auth against the `APP_PASSWORD` secret, compared in constant time.
-  - It fails closed: with no secret set, every request gets a 503.
-  - Cloudflare Access can be added in front later from the dashboard.
+  - Cloudflare Access sits in front of the custom domain (`woodlinepartners.night-zone.com`):
+    one-time PIN by email, allowed for `@woodlinepartners.com` plus explicitly listed addresses.
+  - The Worker verifies the Access JWT itself (`Cf-Access-Jwt-Assertion`: signature against the
+    team's keys, issuer, `ACCESS_AUD`, expiry) and re-checks the email against
+    `ALLOWED_EMAIL_DOMAINS` / the `ALLOWED_EMAILS` secret; otherwise 403.
+  - Then it requires HTTP Basic auth against the `APP_PASSWORD` secret, compared in constant time.
+  - Both checks fail closed: with Access settings or the password missing, every request gets a 503.
+  - `workers_dev` and preview URLs are off, so nothing bypasses Access.
 - **Ephemeral data:** the container's disk resets on sleep or redeploy. `/api/config` reports
   `ephemeral: true`, and the UI shows a quiet banner: "Hosted demo — data resets when the server
   sleeps".

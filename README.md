@@ -89,8 +89,16 @@ after installing the optional dependency: `uv sync --extra foundry-entra`.
 
 ## Hosted demo (Cloudflare Containers)
 
-A hosted copy can run the same container on Cloudflare, behind a Worker that requires a shared
-password before anything else is served. It's meant for a quick look, not day-to-day use:
+A hosted copy can run the same container on Cloudflare. Visitors pass two checks before anything
+is served:
+
+1. **Cloudflare Access (email one-time PIN):** only addresses on the allowlist get a login code by
+   email. The Worker also verifies the Access token itself (`src/access.ts`) and refuses requests
+   that didn't come through Access, so the app is only reachable on its custom domain
+   (`workers.dev` and preview URLs are off).
+2. **A shared password** (HTTP Basic auth, any user name).
+
+It's meant for a quick look, not day-to-day use:
 **the container's disk resets whenever it sleeps or is redeployed**, so anything uploaded there is
 temporary. Don't upload real broker schedules to the hosted copy unless your firm's data rules
 allow it — use it with the sample PDFs in `samples/`.
@@ -100,8 +108,14 @@ cd deploy/cloudflare && npm ci
 npx wrangler login
 npx wrangler deploy
 npx wrangler secret put APP_PASSWORD
+npx wrangler secret put ALLOWED_EMAILS   # optional: comma-separated extra addresses, besides ALLOWED_EMAIL_DOMAINS
 security find-generic-password -s meeting-calendar-sync.anthropic-api-key -w | tr -d '\n' | npx wrangler secret put ANTHROPIC_API_KEY
 ```
+
+Before deploying your own copy, create a self-hosted Cloudflare Access application for the hostname
+in `wrangler.jsonc` (login method: One-time PIN; policy: allow your email domain), then set
+`ACCESS_TEAM_DOMAIN`, `ACCESS_AUD` (the app's Application Audience tag) and `ALLOWED_EMAIL_DOMAINS`
+in its `vars`. Without them the Worker refuses every request.
 
 ## Development
 

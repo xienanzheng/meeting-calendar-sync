@@ -2,7 +2,19 @@
   "name": "meeting-calendar-sync-worker",
   "private": true,
   "type": "module",
-  "scripts": { "test": "vitest run", "deploy": "wrangler deploy", "types": "wrangler types" },
-  "dependencies": { "@cloudflare/containers": "latest" },
-  "devDependencies": { "wrangler": "latest", "typescript": "latest", "vitest": "latest", "@cloudflare/workers-types": "latest" }
+  "scripts": {
+    "test": "vitest run",
+    "deploy": "wrangler deploy",
+    "types": "wrangler types"
+  },
+  "dependencies": {
+    "@cloudflare/containers": "latest",
+    "jose": "^6.2.12"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "latest",
+    "typescript": "latest",
+    "vitest": "latest",
+    "wrangler": "latest"
+  }
 }

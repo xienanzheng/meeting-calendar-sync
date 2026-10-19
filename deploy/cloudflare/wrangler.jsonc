@@ -4,6 +4,17 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-10-01",
   "observability": { "enabled": true },
+  // Only the custom domain serves the app: it sits behind Cloudflare Access (email one-time PIN),
+  // so the workers.dev and preview URLs are off to leave no way around it.
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [{ "pattern": "woodlinepartners.night-zone.com", "custom_domain": true }],
+  // ALLOWED_EMAILS (exact extra addresses) is a Worker secret, kept out of the repo.
+  "vars": {
+    "ACCESS_TEAM_DOMAIN": "https://tight-star-4f2f.cloudflareaccess.com",
+    "ACCESS_AUD": "8d4cde40c87cdff0f5b18af6a9082ffe71243bcb4b00b9306fa1c7d89ddc2f96",
+    "ALLOWED_EMAIL_DOMAINS": "woodlinepartners.com"
+  },
   "containers": [
     {
       "class_name": "McsContainer",

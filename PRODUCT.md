@@ -53,7 +53,7 @@ A human-verified bridge from messy, broker-specific PDF layouts to colleagues' c
   - **warn:** assumed end time, unmatched name, fuzzy match, double booking, duplicate.
 - The app never sends email or Teams messages.
 - Local mode: binds to 127.0.0.1, one user, no login.
-- Hosted mode (Cloudflare Containers): a password-gated Worker sits in front; the API key is a Cloudflare secret. Data is ephemeral (it resets when the container sleeps or is redeployed) and the UI says so. The sample roster is seeded on start. Real broker schedules shouldn't go into the hosted copy until the firm's data rules allow it.
+- Hosted mode (Cloudflare Containers): Cloudflare Access (email one-time PIN, Woodline addresses only) and then a password-gated Worker sit in front; the API key is a Cloudflare secret. Data is ephemeral (it resets when the container sleeps or is redeployed) and the UI says so. The sample roster is seeded on start. Real broker schedules shouldn't go into the hosted copy until the firm's data rules allow it.
 - Secrets live in env vars or the macOS Keychain, never in files.
 - Not decided or not in v1:
   - merging a revised broker PDF into an earlier upload;
